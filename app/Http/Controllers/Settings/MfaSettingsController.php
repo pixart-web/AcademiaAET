@@ -19,7 +19,7 @@ class MfaSettingsController extends Controller
 
         return Inertia::render('Settings/Mfa', [
             'mfaEnabled' => $user->mfa_enabled,
-            'setupQrCodeUrl' => $pendingSecret ? $mfa->qrCodeUrl($user, $pendingSecret) : null,
+            'setupQrCodeDataUri' => $pendingSecret ? $mfa->qrCodeDataUri($user, $pendingSecret) : null,
         ]);
     }
 

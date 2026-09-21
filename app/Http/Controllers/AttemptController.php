@@ -94,9 +94,13 @@ class AttemptController extends Controller
 
         $mediaAssetId = null;
 
-        if ($responseType->isRecording()) {
+        $isFileResponse = $responseType->isRecording() || $responseType === ResponseType::Drawing;
+
+        if ($isFileResponse) {
             $request->validate(['file' => ['required', 'file', 'max:'.self::MAX_RECORDING_KB]]);
-            $mediaAssetId = $this->storeRecording($request, $attempt, $responseType);
+            $mediaAssetId = $responseType === ResponseType::Drawing
+                ? $this->storeDrawing($request, $attempt)
+                : $this->storeRecording($request, $attempt, $responseType);
             $value = null;
         } else {
             $data = $request->validate(['value' => ['nullable']]);
@@ -112,7 +116,7 @@ class AttemptController extends Controller
         StepResponse::updateOrCreate(
             ['attempt_id' => $attempt->id, 'activity_step_id' => $activityStep->id],
             [
-                'value' => $responseType->isRecording() ? null : $value,
+                'value' => $isFileResponse ? null : $value,
                 'media_asset_id' => $mediaAssetId,
                 'is_correct' => $isCorrect,
                 'answered_at' => now(),
@@ -170,6 +174,30 @@ class AttemptController extends Controller
             'path' => $path,
             'mime_type' => $detectedMime,
             'kind' => $type === ResponseType::VoiceRecording ? MediaKind::Audio : MediaKind::Video,
+            'size_bytes' => $file->getSize(),
+            'status' => 'active',
+        ]);
+
+        return $media->id;
+    }
+
+    private function storeDrawing(Request $request, Attempt $attempt): int
+    {
+        $file = $request->file('file');
+        $detectedMime = $file->getMimeType();
+
+        abort_unless($detectedMime === 'image/png', 422, 'Formato de desenho não suportado.');
+
+        $child = Auth::guard('child')->user();
+        $path = $file->store('drawings/'.$child->organization_id.'/'.$child->id, 'local');
+
+        $media = MediaAsset::create([
+            'organization_id' => $child->organization_id,
+            'uploaded_by_user_id' => null,
+            'disk' => 'local',
+            'path' => $path,
+            'mime_type' => $detectedMime,
+            'kind' => MediaKind::Image,
             'size_bytes' => $file->getSize(),
             'status' => 'active',
         ]);

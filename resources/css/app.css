@@ -1,3 +1,93 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/**
+ * Design tokens — provisional Academia AET identity (see docs/design-system.md).
+ * Each shell scopes its palette/density via a `data-shell` attribute on <html>
+ * rather than a separate stylesheet, so shared components (buttons, inputs)
+ * stay one implementation while still reading as four distinct experiences.
+ */
+:root {
+    --shell-radius-sm: 0.5rem;
+    --shell-radius-md: 0.75rem;
+    --shell-radius-lg: 1rem;
+    --shell-radius-xl: 1.5rem;
+}
+
+/* Professional portal — calm, credible, information-dense. */
+[data-shell='professional'] {
+    --color-bg: #f7f8f7;
+    --color-surface: #ffffff;
+    --color-ink: #1f2a24;
+    --color-ink-muted: #5b665f;
+    --color-border: #e2e6e2;
+    --color-accent: #0f6b5c;
+    --color-accent-ink: #ffffff;
+    --color-accent-soft: #e3efec;
+    --color-warning: #b45309;
+    --color-danger: #b3261e;
+    --shell-radius: var(--shell-radius-md);
+}
+
+/* 3–6 years — warm, few choices, generous touch targets. */
+[data-shell='early'] {
+    --color-bg: #fff7ec;
+    --color-surface: #ffffff;
+    --color-ink: #3a2c1a;
+    --color-ink-muted: #8a7355;
+    --color-border: #f0ddb8;
+    --color-accent: #ee8b3c;
+    --color-accent-ink: #ffffff;
+    --color-accent-soft: #ffe8cc;
+    --color-warning: #b45309;
+    --color-danger: #c0392b;
+    --shell-radius: var(--shell-radius-xl);
+}
+
+/* 7–13 years — discovery, missions, a bit more autonomy. */
+[data-shell='middle'] {
+    --color-bg: #f2f8fb;
+    --color-surface: #ffffff;
+    --color-ink: #17303a;
+    --color-ink-muted: #4d6b78;
+    --color-border: #d7e7ee;
+    --color-accent: #1785a3;
+    --color-accent-ink: #ffffff;
+    --color-accent-soft: #dcf0f6;
+    --color-warning: #b45309;
+    --color-danger: #c0392b;
+    --shell-radius: var(--shell-radius-lg);
+}
+
+/* 14–18 years — contemporary, understated, no infantilizing chrome. */
+[data-shell='teen'] {
+    --color-bg: #f5f5f7;
+    --color-surface: #ffffff;
+    --color-ink: #1a1a1e;
+    --color-ink-muted: #63636b;
+    --color-border: #e1e1e6;
+    --color-accent: #4338ca;
+    --color-accent-ink: #ffffff;
+    --color-accent-soft: #e8e6fb;
+    --color-warning: #b45309;
+    --color-danger: #b91c1c;
+    --shell-radius: var(--shell-radius-sm);
+}
+
+html,
+body {
+    background-color: var(--color-bg, #f7f8f7);
+    color: var(--color-ink, #1f2a24);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

@@ -30,6 +30,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Demo Data Guard
+    |--------------------------------------------------------------------------
+    |
+    | Fictional demo children/activities/results are never seeded outside a
+    | local or explicitly-flagged demo environment. See DemoDataSeeder.
+    |
+    */
+
+    'allow_demo_seeding' => (bool) env('APP_ALLOW_DEMO_SEEDING', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Debug Mode
     |--------------------------------------------------------------------------
     |

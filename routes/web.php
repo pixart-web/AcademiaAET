@@ -4,6 +4,7 @@ use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AttemptController;
 use App\Http\Controllers\Auth\ChildSessionController;
+use App\Http\Controllers\ChildHomeController;
 use App\Http\Controllers\ChildProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceAssociationController;
@@ -99,9 +100,7 @@ Route::prefix('crianca')->group(function () {
     });
 
     Route::middleware('auth:child')->group(function () {
-        Route::get('/', function () {
-            return Inertia::render('ChildPortal/Home');
-        })->name('child.home');
+        Route::get('/', ChildHomeController::class)->name('child.home');
 
         Route::post('atribuicoes/{assignment}/iniciar', [AttemptController::class, 'start'])->name('child.assignments.start');
         Route::get('tentativas/{attempt}', [AttemptController::class, 'show'])->name('child.attempts.show');

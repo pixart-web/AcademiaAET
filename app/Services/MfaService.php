@@ -3,6 +3,10 @@
 namespace App\Services;
 
 use App\Models\User;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Illuminate\Support\Facades\Crypt;
 use PragmaRX\Google2FA\Google2FA;
 
@@ -15,13 +19,18 @@ class MfaService
         return $this->google2fa->generateSecretKey();
     }
 
-    public function qrCodeUrl(User $user, string $secret): string
+    /**
+     * Rendered fully server-side as an inline SVG data URI — the TOTP secret
+     * never travels to a third-party QR-rendering service.
+     */
+    public function qrCodeDataUri(User $user, string $secret): string
     {
-        return $this->google2fa->getQRCodeUrl(
-            config('app.name'),
-            $user->email,
-            $secret,
-        );
+        $otpAuthUrl = $this->google2fa->getQRCodeUrl(config('app.name'), $user->email, $secret);
+
+        $renderer = new ImageRenderer(new RendererStyle(240), new SvgImageBackEnd);
+        $svg = (new Writer($renderer))->writeString($otpAuthUrl);
+
+        return 'data:image/svg+xml;base64,'.base64_encode($svg);
     }
 
     public function verify(string $secret, string $code): bool

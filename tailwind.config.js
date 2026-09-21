@@ -15,6 +15,23 @@ export default {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
+            colors: {
+                bg: 'var(--color-bg)',
+                surface: 'var(--color-surface)',
+                ink: 'var(--color-ink)',
+                'ink-muted': 'var(--color-ink-muted)',
+                border: 'var(--color-border)',
+                accent: {
+                    DEFAULT: 'var(--color-accent)',
+                    ink: 'var(--color-accent-ink)',
+                    soft: 'var(--color-accent-soft)',
+                },
+                warning: 'var(--color-warning)',
+                danger: 'var(--color-danger)',
+            },
+            borderRadius: {
+                shell: 'var(--shell-radius)',
+            },
         },
     },
 

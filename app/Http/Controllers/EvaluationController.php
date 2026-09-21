@@ -42,6 +42,7 @@ class EvaluationController extends Controller
 
         $attempt->load([
             'assignment.childProfile',
+            'assignment.activityVersion.activity',
             'assignment.activityVersion.steps.instructionMedia',
             'stepResponses.media',
             'evaluations.evaluatedBy',
