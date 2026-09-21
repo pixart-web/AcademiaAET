@@ -25,6 +25,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
         ]);
+
+        // An unauthenticated request to a child-guard route must land on the
+        // child's own PIN/device entry screen, never the staff login form.
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('crianca*')
+            ? route('child.login')
+            : route('login'));
+
+        $middleware->redirectUsersTo(fn (Request $request) => $request->is('crianca*')
+            ? route('child.home')
+            : route('dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
