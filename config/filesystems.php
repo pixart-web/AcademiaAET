@@ -33,7 +33,10 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Deliberately not "serve"d automatically: media (recordings, drawings,
+            // documents) is sensitive and must go through MediaController's own
+            // authorization + short-lived signed URL, not Laravel's default route.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

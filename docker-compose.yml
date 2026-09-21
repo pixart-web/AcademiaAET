@@ -1,0 +1,43 @@
+services:
+  pgsql:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-academia_aet}
+      POSTGRES_USER: ${DB_USERNAME:-academia_aet}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-academia_aet}
+    ports:
+      - "${FORWARD_DB_PORT:-55432}:5432"
+    volumes:
+      - academia-aet-pgsql:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-academia_aet} -d ${DB_DATABASE:-academia_aet}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_REDIS_PORT:-6379}:6379"
+    volumes:
+      - academia-aet-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "${FORWARD_MAILPIT_PORT:-1025}:1025"
+      - "${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025"
+
+volumes:
+  academia-aet-pgsql:
+    driver: local
+  academia-aet-redis:
+    driver: local
