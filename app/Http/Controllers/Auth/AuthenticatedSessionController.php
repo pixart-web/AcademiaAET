@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
@@ -13,9 +14,6 @@ use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Display the login view.
-     */
     public function create(): Response
     {
         return Inertia::render('Auth/Login', [
@@ -24,29 +22,39 @@ class AuthenticatedSessionController extends Controller
         ]);
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
     public function store(LoginRequest $request): RedirectResponse
     {
-        $request->authenticate();
+        $user = $request->authenticate();
 
+        if ($user->mfa_enabled) {
+            $request->session()->put('mfa.pending_user_id', $user->id);
+            $request->session()->put('mfa.remember', $request->boolean('remember'));
+
+            return redirect()->route('mfa.challenge');
+        }
+
+        Auth::guard('child')->logout();
+        Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended($this->homeRouteFor($user));
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    public static function homeRouteFor($user): string
+    {
+        return match ($user->role) {
+            UserRole::Admin, UserRole::Professional => route('dashboard', absolute: false),
+            UserRole::Guardian => route('guardian.home', absolute: false),
+        };
     }
 }

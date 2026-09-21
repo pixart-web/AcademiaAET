@@ -4,7 +4,10 @@ namespace App\Models;
 
 use App\Enums\ChildStatus;
 use App\Enums\VisualExperience;
+use Illuminate\Auth\Authenticatable;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,13 +15,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * Authenticatable so the "child" session guard can log a child profile in
+ * directly after a device+PIN check — children never have a password, only a
+ * device-scoped PIN validated against DeviceAssociation before login() is called.
+ */
 #[Fillable([
     'organization_id', 'first_name', 'preferred_name', 'birth_date',
     'visual_experience', 'visual_experience_overridden', 'status', 'care_notes', 'is_demo',
 ])]
-class ChildProfile extends Model
+#[Hidden(['care_notes'])]
+class ChildProfile extends Model implements AuthenticatableContract
 {
-    use HasFactory, SoftDeletes;
+    use Authenticatable, HasFactory, SoftDeletes;
 
     protected function casts(): array
     {

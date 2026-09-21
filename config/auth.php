@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ChildProfile;
 use App\Models\User;
 
 return [
@@ -42,6 +43,14 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Children never authenticate with an email/password; a device must
+        // already be associated (see DeviceAssociation) and the PIN checked
+        // against it before this guard ever logs a ChildProfile in.
+        'child' => [
+            'driver' => 'session',
+            'provider' => 'child_profiles',
+        ],
     ],
 
     /*
@@ -71,6 +80,11 @@ return [
         //     'driver' => 'database',
         //     'table' => 'users',
         // ],
+
+        'child_profiles' => [
+            'driver' => 'eloquent',
+            'model' => ChildProfile::class,
+        ],
     ],
 
     /*

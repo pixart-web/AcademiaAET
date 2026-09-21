@@ -63,4 +63,21 @@ class DeviceAssociation extends Model
     {
         return Hash::check($pin, $this->pin_hash);
     }
+
+    public function isActivated(): bool
+    {
+        return $this->activated_at !== null;
+    }
+
+    public function activateWithToken(string $deviceToken): void
+    {
+        $this->device_token_hash = hash('sha256', $deviceToken);
+        $this->activated_at = now();
+    }
+
+    public function checkDeviceToken(string $deviceToken): bool
+    {
+        return $this->device_token_hash !== null
+            && hash_equals($this->device_token_hash, hash('sha256', $deviceToken));
+    }
 }
