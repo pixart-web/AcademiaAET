@@ -7,6 +7,7 @@ use App\Enums\VisualExperience;
 use App\Models\ChildProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -52,7 +53,7 @@ class ChildProfileController extends Controller
         $child->organization_id = $request->user()->organization_id;
         $child->status = ChildStatus::Active;
         $child->visual_experience = VisualExperience::suggestedFor(
-            now()->diffInYears($data['birth_date'])
+            Carbon::parse($data['birth_date'])->age
         );
         $child->save();
 
@@ -97,7 +98,7 @@ class ChildProfileController extends Controller
         ]);
 
         $overridden = $data['visual_experience'] !== VisualExperience::suggestedFor(
-            now()->diffInYears($data['birth_date'])
+            Carbon::parse($data['birth_date'])->age
         )->value;
 
         $child->update([...$data, 'visual_experience_overridden' => $overridden]);

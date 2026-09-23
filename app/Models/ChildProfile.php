@@ -89,7 +89,9 @@ class ChildProfile extends Model implements AuthenticatableContract
 
     public function ageInYears(): int
     {
-        return (int) $this->birth_date->diffInYears(now());
+        // ->age (not diffInYears, whose sign flips with argument order) is the
+        // unambiguous way to get a birth date's current age in Carbon 3.
+        return $this->birth_date->age;
     }
 
     public function suggestedVisualExperience(): VisualExperience

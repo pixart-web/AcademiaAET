@@ -53,7 +53,7 @@ class DemoDataSeeder extends Seeder
                 [
                     'preferred_name' => $data['preferred_name'],
                     'birth_date' => $data['birth_date'],
-                    'visual_experience' => VisualExperience::suggestedFor(now()->diffInYears($data['birth_date'])),
+                    'visual_experience' => VisualExperience::suggestedFor($data['birth_date']->age),
                     'status' => 'active',
                     'is_demo' => true,
                 ],

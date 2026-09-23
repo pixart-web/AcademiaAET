@@ -7,6 +7,7 @@ use App\Enums\VisualExperience;
 use App\Models\ChildProfile;
 use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Carbon;
 
 /**
  * @extends Factory<ChildProfile>
@@ -22,7 +23,7 @@ class ChildProfileFactory extends Factory
             'first_name' => fake()->firstName(),
             'preferred_name' => null,
             'birth_date' => $birthDate,
-            'visual_experience' => VisualExperience::suggestedFor(now()->diffInYears($birthDate)),
+            'visual_experience' => VisualExperience::suggestedFor(Carbon::instance($birthDate)->age),
             'visual_experience_overridden' => false,
             'status' => ChildStatus::Active,
             'care_notes' => null,
