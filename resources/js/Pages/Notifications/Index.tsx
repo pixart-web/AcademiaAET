@@ -11,6 +11,7 @@ interface NotificationItem {
 const LABEL: Record<string, string> = {
     assignment_created: 'Nova atividade atribuída',
     evaluation_available: 'Nova avaliação disponível',
+    attempt_submitted: 'Nova resposta submetida — por avaliar',
 };
 
 export default function Index({ notifications }: { notifications: { data: NotificationItem[] } }) {

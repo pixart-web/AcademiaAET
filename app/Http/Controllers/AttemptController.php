@@ -10,11 +10,13 @@ use App\Models\Assignment;
 use App\Models\Attempt;
 use App\Models\MediaAsset;
 use App\Models\StepResponse;
+use App\Notifications\AttemptSubmittedNotification;
 use App\Services\RewardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -148,7 +150,14 @@ class AttemptController extends Controller
             $attempt->assignment->update(['status' => AssignmentStatus::Submitted]);
         });
 
-        $rewards->awardParticipation($attempt->fresh());
+        $attempt = $attempt->fresh();
+        $rewards->awardParticipation($attempt);
+
+        $childProfile = $attempt->assignment->childProfile;
+        $recipients = $childProfile->assignedProfessionals->merge(
+            $childProfile->organization->users()->where('role', 'admin')->get(),
+        )->unique('id');
+        Notification::send($recipients, new AttemptSubmittedNotification($attempt));
 
         return redirect()->route('child.home')->with('status', 'Atividade submetida! Bom trabalho.');
     }

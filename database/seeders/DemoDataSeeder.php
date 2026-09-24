@@ -116,15 +116,18 @@ class DemoDataSeeder extends Seeder
             $versioning->publish($version);
         }
 
-        $firstChild = $children->first();
-        if ($firstChild && $activity->current_version_id) {
-            Assignment::query()->firstOrCreate([
-                'child_profile_id' => $firstChild->id,
-                'activity_version_id' => $activity->fresh()->current_version_id,
-            ], [
-                'assigned_by_user_id' => $professional->id,
-                'status' => 'assigned',
-            ]);
+        // Assigned to all three so every visual experience has something to
+        // demonstrate out of the box.
+        if ($activity->fresh()->current_version_id) {
+            foreach ($children as $child) {
+                Assignment::query()->firstOrCreate([
+                    'child_profile_id' => $child->id,
+                    'activity_version_id' => $activity->fresh()->current_version_id,
+                ], [
+                    'assigned_by_user_id' => $professional->id,
+                    'status' => 'assigned',
+                ]);
+            }
         }
 
         $this->command?->info('Dados de demonstração criados. Login: admin@academia-aet.test / terapeuta@academia-aet.test (password: password)');
