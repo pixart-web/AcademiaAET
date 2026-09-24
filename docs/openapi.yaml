@@ -1,0 +1,434 @@
+openapi: 3.0.3
+info:
+  title: Academia AET API
+  version: "1.0"
+  description: |
+    API for the future Android/iOS companion apps. Every endpoint here calls
+    the exact same services and Policies as the web portal — AttemptService,
+    DeviceAuthService, ChildFeedbackService, MfaService — so mobile and web
+    can never drift apart on business rules.
+
+    ## Authentication
+    Laravel Sanctum personal access tokens (`Authorization: Bearer <token>`).
+    There are two disjoint kinds of token, enforced server-side by the
+    `api.principal` middleware, never by the client's own judgment:
+    - **staff** tokens (`POST /v1/auth/login`) — admin/professional accounts.
+    - **child** tokens (`POST /v1/child/device/activate` or
+      `POST /v1/child/device/unlock`) — no email/password ever exists for a
+      child; a device must first be paired by staff with a one-time
+      activation code + PIN (see Module A/child access in docs/progress.md).
+      The app is expected to persist `device_id` + `device_token` from the
+      activation response in secure on-device storage (Keychain/Keystore)
+      and use `unlock` (device_token + short PIN) for day-to-day sign-in —
+      the activation code is never needed again after pairing.
+
+    A token is revoked via its own kind's `.../auth/logout`, which deletes
+    the current Sanctum token row. Device revocation (staff-initiated, from
+    the web portal) independently invalidates every token tied to that
+    device's child at the `DeviceAssociation` level.
+
+    Clinical notes (`clinical_notes` table) are never reachable from any
+    child-scoped endpoint in this contract — feedback endpoints only ever
+    expose `evaluations.shared_feedback`.
+  contact:
+    name: Pixart / Tiago Santos
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development
+
+tags:
+  - name: Staff auth
+  - name: Child device auth
+  - name: Child profile
+  - name: Assignments
+  - name: Attempts
+  - name: Feedback
+
+paths:
+  /auth/login:
+    post:
+      tags: [Staff auth]
+      summary: Staff login (admin/professional)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, device_name]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+                mfa_code:
+                  type: string
+                  description: Required only when the account has TOTP MFA enabled (see 401 response).
+                device_name: { type: string, example: "iPhone de Ana" }
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                      name: { type: string }
+                      email: { type: string }
+                      role: { type: string, enum: [admin, professional] }
+        '401':
+          description: Correct password, but MFA code required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mfa_required: { type: boolean, example: true }
+        '422':
+          description: Invalid credentials, disabled account, or invalid MFA code
+
+  /auth/logout:
+    post:
+      tags: [Staff auth]
+      summary: Revoke the current staff token
+      security: [{ staffToken: [] }]
+      responses:
+        '200': { description: Token revoked }
+
+  /auth/me:
+    get:
+      tags: [Staff auth]
+      security: [{ staffToken: [] }]
+      responses:
+        '200':
+          description: The authenticated staff member
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  name: { type: string }
+                  email: { type: string }
+                  role: { type: string }
+
+  /child/device/activate:
+    post:
+      tags: [Child device auth]
+      summary: One-time device pairing (activation code + PIN, issued by staff)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_code, pin, device_name]
+              properties:
+                device_code: { type: string, example: "KGMQO4VEUE" }
+                pin: { type: string, example: "6015" }
+                device_name: { type: string }
+      responses:
+        '200':
+          description: Device paired and child authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string, description: Sanctum bearer token for subsequent /child/* calls }
+                  device_id: { type: integer }
+                  device_token: { type: string, description: Store securely on-device; used by /child/device/unlock instead of the activation code. }
+        '422': { description: Invalid, expired, or revoked device code/PIN }
+
+  /child/device/unlock:
+    post:
+      tags: [Child device auth]
+      summary: Day-to-day sign-in on an already-paired device (short PIN only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id, device_token, pin, device_name]
+              properties:
+                device_id: { type: integer }
+                device_token: { type: string }
+                pin: { type: string }
+                device_name: { type: string }
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+        '422': { description: Wrong PIN, unrecognized device_token, revoked/expired device, or locked out after 5 failed attempts (15 min) }
+
+  /child/auth/logout:
+    post:
+      tags: [Child device auth]
+      security: [{ childToken: [] }]
+      responses:
+        '200': { description: Token revoked (device pairing itself is untouched) }
+
+  /child/me:
+    get:
+      tags: [Child profile]
+      security: [{ childToken: [] }]
+      responses:
+        '200':
+          description: The authenticated child's own profile — never another child's
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  first_name: { type: string }
+                  preferred_name: { type: string, nullable: true }
+                  visual_experience: { type: string, enum: ["3-6", "7-13", "14-18"] }
+
+  /child/assignments:
+    get:
+      tags: [Assignments]
+      summary: Assignments currently assigned/started for the authenticated child
+      security: [{ childToken: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AssignmentSummary' }
+
+  /child/assignments/{assignment}/start:
+    post:
+      tags: [Assignments]
+      summary: Start a new attempt, or resume the existing in-progress one
+      security: [{ childToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/AssignmentId'
+      responses:
+        '200':
+          description: Attempt + its steps (with signed, short-lived instruction media URLs)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attempt: { $ref: '#/components/schemas/Attempt' }
+                  steps:
+                    type: array
+                    items: { $ref: '#/components/schemas/Step' }
+        '403': { description: This assignment does not belong to the authenticated child }
+        '422': { description: No attempts remaining, or assignment cancelled }
+
+  /child/assignments/{assignment}/feedback:
+    get:
+      tags: [Feedback]
+      summary: Status + therapist feedback + achievements for one assignment
+      description: >
+        Selects only evaluations.shared_feedback — clinical_notes is never
+        queried by this endpoint. When no feedback was written, evaluation is
+        non-null but shared_feedback is null; the app should show a neutral
+        message, never fabricate one.
+      security: [{ childToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/AssignmentId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Feedback' }
+        '403': { description: Not this child's assignment }
+
+  /child/attempts/{attempt}:
+    get:
+      tags: [Attempts]
+      summary: Re-fetch an attempt's steps (e.g. after resuming)
+      security: [{ childToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/AttemptId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attempt: { $ref: '#/components/schemas/Attempt' }
+                  steps:
+                    type: array
+                    items: { $ref: '#/components/schemas/Step' }
+
+  /child/attempts/{attempt}/steps/{step}:
+    post:
+      tags: [Attempts]
+      summary: Save (or overwrite) the response to one step
+      description: >
+        Two shapes depending on the step's response_type: JSON `{ "value": ... }`
+        for single_choice/multiple_choice/short_text/completion_confirmation,
+        or multipart/form-data with a `file` field for
+        voice_recording/video_recording/drawing. Calling this again for the
+        same step overwrites the previous answer (free repetition, no penalty).
+      security: [{ childToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/AttemptId'
+        - $ref: '#/components/parameters/StepId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                value: {}
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: Saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  step_response_id: { type: integer }
+                  answered_at: { type: string, format: date-time }
+        '422': { description: "Wrong file type for this step (e.g. not audio/webm for a voice_recording step), or attempt already submitted" }
+
+  /child/attempts/{attempt}/submit:
+    post:
+      tags: [Attempts]
+      summary: Submit the attempt (idempotent)
+      description: >
+        Safe to call more than once with the same submission_key (or none) —
+        a resend after a dropped response is a no-op, never a duplicate
+        submission or a duplicate participation reward.
+      security: [{ childToken: [] }]
+      parameters:
+        - $ref: '#/components/parameters/AttemptId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                submission_key: { type: string, description: Optional idempotency key; defaults to the attempt id. }
+      responses:
+        '200':
+          description: Submitted (or already-submitted, returned unchanged)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attempt:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                      status: { type: string, enum: [submitted, reviewed] }
+                      submitted_at: { type: string, format: date-time }
+
+components:
+  securitySchemes:
+    staffToken:
+      type: http
+      scheme: bearer
+      bearerFormat: "Sanctum personal access token (ability: staff)"
+    childToken:
+      type: http
+      scheme: bearer
+      bearerFormat: "Sanctum personal access token (ability: child)"
+
+  parameters:
+    AssignmentId:
+      name: assignment
+      in: path
+      required: true
+      schema: { type: integer }
+    AttemptId:
+      name: attempt
+      in: path
+      required: true
+      schema: { type: integer }
+    StepId:
+      name: step
+      in: path
+      required: true
+      schema: { type: integer }
+
+  schemas:
+    AssignmentSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        status: { type: string, enum: [assigned, started, submitted, reviewed, cancelled] }
+        title: { type: string }
+        category: { type: string, nullable: true }
+        due_at: { type: string, format: date-time, nullable: true }
+        in_progress_attempt_id: { type: integer, nullable: true }
+
+    Attempt:
+      type: object
+      properties:
+        id: { type: integer }
+        status: { type: string, enum: [in_progress, submitted, reviewed] }
+        attempt_number: { type: integer }
+
+    Step:
+      type: object
+      properties:
+        id: { type: integer }
+        position: { type: integer }
+        title: { type: string, nullable: true }
+        body: { type: string, nullable: true }
+        response_type:
+          type: string
+          enum: [single_choice, multiple_choice, short_text, drawing, voice_recording, video_recording, completion_confirmation]
+        response_config:
+          type: object
+          nullable: true
+          description: "e.g. { options: [...], correct: '...' } for choice types"
+        instruction_media_url: { type: string, nullable: true, description: Short-lived signed URL, ~15 min }
+        answered: { type: boolean }
+        value: { nullable: true }
+
+    Feedback:
+      type: object
+      properties:
+        assignment:
+          type: object
+          properties:
+            id: { type: integer }
+            status: { type: string }
+            title: { type: string }
+        evaluation:
+          type: object
+          nullable: true
+          properties:
+            shared_feedback: { type: string, nullable: true }
+            evaluated_at: { type: string, format: date-time }
+        achievements:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string, enum: [participation, effort, milestone] }
+              points: { type: integer }

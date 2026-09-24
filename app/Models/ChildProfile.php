@@ -14,9 +14,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Sanctum\HasApiTokens;
 
 /**
- * Authenticatable so the "child" session guard can log a child profile in
+ * Authenticatable so the "child" session guard (web) and Sanctum tokens (the
+ * future mobile apps, see routes/api.php) can both log a child profile in
  * directly after a device+PIN check — children never have a password, only a
  * device-scoped PIN validated against DeviceAssociation before login() is called.
  */
@@ -27,7 +29,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Hidden(['care_notes'])]
 class ChildProfile extends Model implements AuthenticatableContract
 {
-    use Authenticatable, HasFactory, SoftDeletes;
+    use Authenticatable, HasApiTokens, HasFactory, SoftDeletes;
 
     protected function casts(): array
     {

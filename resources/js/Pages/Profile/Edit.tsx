@@ -1,5 +1,5 @@
 import ProfessionalLayout from '@/Layouts/ProfessionalLayout';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 
@@ -21,6 +21,14 @@ export default function Edit({
 
                 <div className="rounded-shell border border-border bg-surface p-6">
                     <UpdatePasswordForm className="max-w-xl" />
+                </div>
+
+                <div className="rounded-shell border border-border bg-surface p-6">
+                    <h2 className="text-lg font-medium text-ink">Autenticação em dois passos</h2>
+                    <p className="mt-1 text-sm text-ink-muted">Adicione uma camada extra de segurança à sua conta.</p>
+                    <Link href={route('mfa.edit')} className="mt-4 inline-block rounded-shell border border-border px-4 py-2 text-sm text-ink hover:bg-bg">
+                        Gerir autenticação em dois passos
+                    </Link>
                 </div>
             </div>
         </ProfessionalLayout>

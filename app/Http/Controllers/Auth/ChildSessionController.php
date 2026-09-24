@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\DeviceAssociation;
+use App\Services\DeviceAuthService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -16,10 +16,6 @@ use Inertia\Response;
 class ChildSessionController extends Controller
 {
     private const COOKIE_NAME = 'child_device';
-
-    private const MAX_ATTEMPTS = 5;
-
-    private const LOCKOUT_MINUTES = 15;
 
     public function create(Request $request): Response
     {
@@ -30,39 +26,21 @@ class ChildSessionController extends Controller
         ]);
     }
 
-    /**
-     * One-time pairing of a physical device to one child profile, using a
-     * staff-issued code + PIN that are only ever valid until first activation
-     * or expiry — never a standing internet credential on their own.
-     */
-    public function activate(Request $request): RedirectResponse
+    public function activate(Request $request, DeviceAuthService $devices): RedirectResponse
     {
         $data = $request->validate([
             'device_code' => ['required', 'string'],
             'pin' => ['required', 'string'],
         ]);
 
-        $device = DeviceAssociation::query()
-            ->where('device_identifier', Str::upper($data['device_code']))
-            ->where('status', 'active')
-            ->first();
-
-        if (! $device || ! $device->isUsable() || ! $device->checkPin($data['pin'])) {
-            throw ValidationException::withMessages(['pin' => 'Código ou PIN inválidos.']);
-        }
-
-        $token = Str::random(48);
-        $device->activateWithToken($token);
-        $device->last_used_at = now();
-        $device->failed_attempts = 0;
-        $device->save();
+        [$device, $token] = $devices->activate($data['device_code'], $data['pin']);
 
         $this->loginChild($request, $device, $token);
 
         return redirect()->route('child.home');
     }
 
-    public function unlock(Request $request): RedirectResponse
+    public function unlock(Request $request, DeviceAuthService $devices): RedirectResponse
     {
         $device = $this->resolveDeviceFromCookie($request);
 
@@ -70,29 +48,15 @@ class ChildSessionController extends Controller
             return redirect()->route('child.login');
         }
 
-        if ($device->locked_until && $device->locked_until->isFuture()) {
-            throw ValidationException::withMessages([
-                'pin' => 'Demasiadas tentativas. Tente novamente mais tarde.',
-            ]);
-        }
-
         $data = $request->validate(['pin' => ['required', 'string']]);
+        $cookieToken = $this->tokenFromCookie($request);
 
-        if (! $device->isUsable() || ! $device->checkPin($data['pin'])) {
-            $device->failed_attempts++;
-            if ($device->failed_attempts >= self::MAX_ATTEMPTS) {
-                $device->locked_until = now()->addMinutes(self::LOCKOUT_MINUTES);
-            }
-            $device->save();
-
-            throw ValidationException::withMessages(['pin' => 'PIN incorreto.']);
+        try {
+            $devices->unlock($device, $cookieToken, $data['pin']);
+        } catch (ValidationException $e) {
+            throw $e;
         }
 
-        $device->failed_attempts = 0;
-        $device->last_used_at = now();
-        $device->save();
-
-        $cookieToken = $this->tokenFromCookie($request);
         $this->loginChild($request, $device, $cookieToken);
 
         return redirect()->route('child.home');

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityStep;
+use App\Models\ChildProfile;
 use App\Models\MediaAsset;
 use App\Models\StepResponse;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -15,17 +17,21 @@ class MediaStreamController extends Controller
     /**
      * Reached only via a short-lived signed URL (see routes/web.php), on top of
      * an authorization check — a guessable ID is never sufficient on its own.
+     * Also accepts a Sanctum bearer token (mobile apps), on top of the two
+     * session guards used by the web portal.
      */
     public function __invoke(Request $request, MediaAsset $media): StreamedResponse
     {
         abort_unless($request->hasValidSignature(), 403);
 
-        if (Auth::guard('web')->check()) {
-            $user = Auth::guard('web')->user();
-            abort_unless($user->organization_id === $media->organization_id, 403);
-        } elseif (Auth::guard('child')->check()) {
-            $child = Auth::guard('child')->user();
-            abort_unless($this->childMayAccess($child, $media), 403);
+        $principal = Auth::guard('web')->user()
+            ?? Auth::guard('child')->user()
+            ?? Auth::guard('sanctum')->user();
+
+        if ($principal instanceof User) {
+            abort_unless($principal->organization_id === $media->organization_id, 403);
+        } elseif ($principal instanceof ChildProfile) {
+            abort_unless($this->childMayAccess($principal, $media), 403);
         } else {
             abort(401);
         }
