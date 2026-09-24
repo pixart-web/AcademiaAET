@@ -1,58 +1,118 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Academia AET — Portal Web
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Plataforma de acompanhamento terapêutico infantil e juvenil para a Academia
+AET. Este repositório contém o Portal Web (profissional + três experiências
+infantis por faixa etária) e o backend REST (`/api/v1`) partilhado com as
+futuras aplicações Android/iOS (não desenvolvidas nesta etapa).
 
-## About Laravel
+> Identidade visual provisória (wordmark tipográfico, cores e mascote
+> originais) — ver `docs/progress.md`. A ferramenta não diagnostica nem
+> substitui decisões clínicas.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Documentação
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Documento | Conteúdo |
+|---|---|
+| [`docs/progress.md`](docs/progress.md) | Arquitetura, decisões técnicas, modelo de dados, estado funcional |
+| [`docs/requirements-matrix.md`](docs/requirements-matrix.md) | Cada requisito do enunciado original, com estado verificado |
+| [`docs/openapi.yaml`](docs/openapi.yaml) | Contrato da API `/api/v1` para as futuras apps móveis |
+| [`docs/permissions.md`](docs/permissions.md) | Mapa de papéis e permissões |
+| [`docs/content-guide.md`](docs/content-guide.md) | Como criar atividades e substituir o conteúdo de demonstração |
+| [`docs/visual-review.md`](docs/visual-review.md) | Revisão visual/acessibilidade manual — e as suas limitações explícitas |
+| [`docs/production-checklist.md`](docs/production-checklist.md) | Backups, reposição, checklist antes de produção |
+| [`docs/delivery-report.md`](docs/delivery-report.md) | Relatório de entrega, testes executados, decisões pendentes da clínica |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Arquitetura
 
-## Learning Laravel
+- **Backend**: Laravel 13 (PHP 8.5), PostgreSQL 16.
+- **Portal Web**: Inertia + React 18 + TypeScript, Tailwind CSS v3.
+- **API móvel**: REST JSON versionado em `/api/v1`, autenticado por Laravel
+  Sanctum, documentado em `docs/openapi.yaml`.
+- **Autenticação web**: sessões + cookies, CSRF nativo do Laravel.
+- **Acesso da criança**: guard de sessão dedicado (`child`), sem
+  email/password — dispositivo emparelhado por código+PIN de uso único,
+  depois PIN curto. Ver `docs/progress.md` para o desenho de segurança.
+- **Armazenamento**: disco privado local em desenvolvimento
+  (`storage/app/private`), compatível com S3 em produção; media servido
+  apenas via URLs assinadas de curta duração.
+- **Filas/notificações**: driver de base de dados do Laravel; Mailpit em
+  desenvolvimento.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Ambiente de desenvolvimento
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Pré-requisitos: PHP 8.3+, Composer, Node 20+, Docker (ou Postgres/Redis
+locais equivalentes).
 
 ```bash
-composer require laravel/boost --dev
+git clone <repo> academia-aet && cd academia-aet
 
-php artisan boost:install
+# Infraestrutura (Postgres na porta 55432, não 5432 — ver docker-compose.yml)
+docker-compose up -d pgsql redis mailpit
+
+composer install
+npm install
+
+cp .env.example .env
+php artisan key:generate
+
+# Cria o esquema e os dados de demonstração fictícios (bloqueado fora de
+# ambiente local/testing, ver "Dados de demonstração" abaixo)
+php artisan migrate --seed
+
+# Laravel + Vite + fila + logs num só comando
+composer run dev
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Abrir `http://localhost:8000`.
 
-## Contributing
+### Dados de demonstração
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+`database/seeders/DemoDataSeeder.php` cria uma organização, duas contas de
+equipa e três perfis de criança fictícios (um por experiência visual), uma
+atividade publicada com os três tipos de resposta mais representativos, e
+atribuições às três crianças. **Todos os registos têm `is_demo = true`** e
+o seeder **recusa-se a correr** fora de `APP_ENV=local`/`testing` a menos
+que `APP_ALLOW_DEMO_SEEDING=true` esteja explicitamente definido — uma
+instalação de produção arranca sempre vazia.
 
-## Code of Conduct
+Login de demonstração (só em ambiente local):
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+| Papel | Email | Password |
+|---|---|---|
+| Administrador | `admin@academia-aet.test` | `password` |
+| Terapeuta | `terapeuta@academia-aet.test` | `password` |
 
-## Security Vulnerabilities
+O acesso das crianças de demonstração usa código de dispositivo + PIN
+gerados dinamicamente (nunca fixos) — gere um em
+"Crianças e jovens → (perfil) → Acesso do dispositivo" no portal, ou via
+`php artisan tinker` (ver `docs/progress.md`).
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Testes
 
-## License
+```bash
+php artisan test              # suite completa (backend)
+php artisan test --filter=X   # um ficheiro/teste específico
+npm run build                 # build de produção do frontend + verificação TypeScript
+vendor/bin/pint                # formatação PHP
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Ver `docs/delivery-report.md` para o resultado real da última execução e o
+que ficou por testar (browsers reais, dispositivos físicos, leitores de
+ecrã).
+
+## Estrutura
+
+```
+app/Http/Controllers/       Portal Web (Inertia)
+app/Http/Controllers/Api/   API /api/v1 (mesmos serviços, contrato JSON)
+app/Services/                Lógica de negócio partilhada entre portal e API
+app/Policies/                 Autorização por recurso (organização + atribuição)
+resources/js/Pages/          Páginas Inertia (Children, Activities, Evaluations, …)
+resources/js/Pages/ChildPortal/  Os três shells infantis (Early/Middle/Teen) + motor partilhado em resources/js/Child/
+database/migrations/         Esquema completo (ver docs/progress.md)
+docs/                         Documentação de entrega
+```
+
+## Licença
+
+Uso interno da Academia AET / Pixart. Não é software open-source.
