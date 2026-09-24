@@ -8,6 +8,7 @@ use App\Models\Attempt;
 use App\Models\ClinicalNote;
 use App\Models\Evaluation;
 use App\Notifications\EvaluationAvailableNotification;
+use App\Services\AuditLogger;
 use App\Services\RewardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -112,6 +113,13 @@ class EvaluationController extends Controller
         });
 
         $rewards->awardForEvaluation($evaluation);
+
+        AuditLogger::log(
+            'evaluation.created',
+            $evaluation,
+            ['attempt_id' => $attempt->id, 'has_internal_note' => $evaluation->clinical_note_id !== null],
+            $request->user()->organization_id,
+        );
 
         $evaluation->attempt->assignment->childProfile
             ->guardianRelationships()->where('status', 'active')->with('user')->get()

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ChildProfile;
 use App\Models\DeviceAssociation;
+use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -31,6 +32,8 @@ class DeviceAssociationController extends Controller
         $device->setPin($pin);
         $device->save();
 
+        AuditLogger::log('device.activation_issued', $child, ['device_association_id' => $device->id]);
+
         return back()->with([
             'status' => 'Acesso gerado. Introduza este código e PIN no dispositivo da criança — só são mostrados agora.',
             'newDeviceCode' => $deviceIdentifier,
@@ -48,6 +51,8 @@ class DeviceAssociationController extends Controller
             'revoked_at' => now(),
             'revoked_by_user_id' => $request->user()->id,
         ]);
+
+        AuditLogger::log('device.revoked', $child, ['device_association_id' => $device->id]);
 
         return back()->with('status', 'Acesso do dispositivo revogado.');
     }

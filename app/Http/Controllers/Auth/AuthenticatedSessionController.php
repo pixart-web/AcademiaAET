@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -36,6 +37,7 @@ class AuthenticatedSessionController extends Controller
         Auth::guard('child')->logout();
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
+        AuditLogger::log('staff.login', $user, [], userId: $user->id);
 
         return redirect()->intended($this->homeRouteFor($user));
     }

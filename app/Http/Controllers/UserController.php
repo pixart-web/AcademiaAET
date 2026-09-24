@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\UserInvitationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -77,6 +78,7 @@ class UserController extends Controller
         $this->authorize('delete', $user);
 
         $user->update(['disabled_at' => now()]);
+        AuditLogger::log('staff.disabled', $user);
 
         return back()->with('status', 'Conta desativada.');
     }
@@ -86,6 +88,7 @@ class UserController extends Controller
         $this->authorize('update', $user);
 
         $user->update(['disabled_at' => null]);
+        AuditLogger::log('staff.reactivated', $user);
 
         return back()->with('status', 'Conta reativada.');
     }

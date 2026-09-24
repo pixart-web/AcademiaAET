@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Services\AuditLogger;
 use App\Services\MfaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,6 +49,7 @@ class MfaSettingsController extends Controller
         ]);
 
         $request->session()->forget('mfa.setup_secret');
+        AuditLogger::log('mfa.enabled', $user);
 
         return redirect()->route('mfa.edit')->with('status', 'Autenticação em dois passos ativada.');
     }
@@ -55,6 +57,7 @@ class MfaSettingsController extends Controller
     public function disable(Request $request): RedirectResponse
     {
         $request->user()->update(['mfa_enabled' => false, 'mfa_secret' => null]);
+        AuditLogger::log('mfa.disabled', $request->user());
 
         return redirect()->route('mfa.edit')->with('status', 'Autenticação em dois passos desativada.');
     }
