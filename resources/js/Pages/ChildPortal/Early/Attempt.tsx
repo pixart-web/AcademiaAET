@@ -11,7 +11,7 @@ import EarlyLayout from './Layout';
  * instruction is always free (SpeakButton has no attempt limit).
  */
 export default function Attempt({ attempt, steps }: { attempt: { id: number }; steps: Step[] }) {
-    const { step, isLast, saving, saveValue, saveFile, goNext } = useAttempt(attempt.id, steps);
+    const { step, isLast, saving, error, saveValue, saveFile, goNext } = useAttempt(attempt.id, steps);
     const instructionText = [step.title, step.body].filter(Boolean).join('. ');
 
     return (
@@ -26,6 +26,12 @@ export default function Attempt({ attempt, steps }: { attempt: { id: number }; s
             </div>
 
             {step.instruction_media_url && <MediaPreview url={step.instruction_media_url} />}
+
+            {error && (
+                <p role="alert" className="mt-4 rounded-shell bg-danger/10 px-4 py-2 text-base text-danger">
+                    {error}
+                </p>
+            )}
 
             <div className="mt-6 w-full max-w-xs">
                 <StepInput

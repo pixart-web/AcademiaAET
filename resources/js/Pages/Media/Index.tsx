@@ -67,6 +67,7 @@ export default function Index({ media }: { media: Paginated<MediaItem> }) {
                         onChange={(e) => setData('file', e.target.files?.[0] ?? null)}
                         className="block w-full text-sm"
                     />
+                    {errors.file && <p className="text-sm text-danger">{errors.file}</p>}
 
                     <button
                         type="submit"

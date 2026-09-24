@@ -64,11 +64,11 @@ class MediaAssetController extends Controller
 
         $detectedMime = $file->getMimeType();
 
-        abort_unless(
-            in_array($detectedMime, self::ALLOWED_MIME_BY_KIND[$data['kind']], true),
-            422,
-            'Tipo de ficheiro não permitido para esta categoria.',
-        );
+        if (! in_array($detectedMime, self::ALLOWED_MIME_BY_KIND[$data['kind']], true)) {
+            return back()->withErrors([
+                'file' => 'Tipo de ficheiro não permitido para esta categoria.',
+            ])->withInput();
+        }
 
         if (in_array($data['kind'], ['image', 'audio', 'video'], true) && blank($data['alt_text'] ?? null) && blank($data['transcript'] ?? null)) {
             return back()->withErrors([
