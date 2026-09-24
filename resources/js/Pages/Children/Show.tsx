@@ -25,6 +25,14 @@ interface AssignmentRow {
     attempts: { id: number; status: string }[];
 }
 
+interface DeviceAssociation {
+    id: number;
+    device_identifier: string;
+    status: string;
+    expires_at: string;
+    last_used_at: string | null;
+}
+
 interface Child {
     id: number;
     first_name: string;
@@ -36,9 +44,26 @@ interface Child {
     guardian_relationships: GuardianRelationship[];
     assigned_professionals: Professional[];
     assignments: AssignmentRow[];
+    device_associations: DeviceAssociation[];
 }
 
-export default function Show({ child, canManageClinical }: { child: Child; canManageClinical: boolean }) {
+const STATUS_LABEL: Record<string, string> = {
+    assigned: 'Atribuída',
+    started: 'Iniciada',
+    submitted: 'Por avaliar',
+    reviewed: 'Avaliada',
+    cancelled: 'Cancelada',
+};
+
+export default function Show({
+    child,
+    canManageClinical,
+    publishableActivities,
+}: {
+    child: Child;
+    canManageClinical: boolean;
+    publishableActivities: { id: number; title: string }[];
+}) {
     const { flash } = usePage<PageProps>().props;
 
     const guardianForm = useForm({ name: '', email: '', relationship_type: 'encarregado de educação' });
@@ -47,10 +72,21 @@ export default function Show({ child, canManageClinical }: { child: Child; canMa
         guardianForm.post(route('children.guardians.store', child.id), { onSuccess: () => guardianForm.reset() });
     };
 
+    const assignForm = useForm({ activity_id: '', due_at: '' });
+    const submitAssign: FormEventHandler = (e) => {
+        e.preventDefault();
+        assignForm.post(route('children.assignments.store', child.id), { onSuccess: () => assignForm.reset() });
+    };
+
+    const cancelAssignment = (assignmentId: number) => {
+        router.delete(route('assignments.cancel', assignmentId));
+    };
+
     const generateDevice = () => router.post(route('children.devices.store', child.id));
+    const revokeDevice = (deviceId: number) => router.patch(route('children.devices.revoke', [child.id, deviceId]));
 
     return (
-        <ProfessionalLayout title={child.preferred_name ?? child.first_name}>
+        <ProfessionalLayout title={child.preferred_name ?? child.first_name} description={`Experiência: ${child.visual_experience} anos`}>
             <Head title={child.preferred_name ?? child.first_name} />
 
             {flash.newDeviceCode && (
@@ -63,22 +99,62 @@ export default function Show({ child, canManageClinical }: { child: Child; canMa
             <div className="grid gap-6 lg:grid-cols-3">
                 <div className="space-y-6 lg:col-span-2">
                     <section className="rounded-shell border border-border bg-surface p-5">
-                        <div className="mb-3 flex items-center justify-between">
-                            <h2 className="font-semibold text-ink">Atribuições</h2>
-                            <Link href={route('activities.index')} className="text-sm text-accent">Atribuir atividade →</Link>
-                        </div>
+                        <h2 className="mb-3 font-semibold text-ink">Atribuições</h2>
 
                         {child.assignments.length === 0 ? (
                             <p className="text-sm text-ink-muted">Ainda sem atividades atribuídas.</p>
                         ) : (
-                            <ul className="divide-y divide-border">
+                            <ul className="mb-4 divide-y divide-border">
                                 {child.assignments.map((a) => (
                                     <li key={a.id} className="flex items-center justify-between py-2 text-sm">
                                         <span>{a.activity_version.activity.title}</span>
-                                        <span className="capitalize text-ink-muted">{a.status}</span>
+                                        <span className="flex items-center gap-3">
+                                            <span className="text-ink-muted">{STATUS_LABEL[a.status] ?? a.status}</span>
+                                            {canManageClinical && ['assigned', 'started'].includes(a.status) && (
+                                                <button onClick={() => cancelAssignment(a.id)} className="text-danger">
+                                                    Cancelar
+                                                </button>
+                                            )}
+                                        </span>
                                     </li>
                                 ))}
                             </ul>
+                        )}
+
+                        {canManageClinical && (
+                            <form onSubmit={submitAssign} className="flex flex-wrap items-end gap-2 border-t border-border pt-3">
+                                <div className="flex-1">
+                                    <label className="block text-xs text-ink-muted">Nova atribuição</label>
+                                    <select
+                                        value={assignForm.data.activity_id}
+                                        onChange={(e) => assignForm.setData('activity_id', e.target.value)}
+                                        required
+                                        className="mt-1 block w-full rounded-shell border-border text-sm focus:border-accent focus:ring-accent"
+                                    >
+                                        <option value="">Escolher atividade publicada…</option>
+                                        {publishableActivities.map((a) => (
+                                            <option key={a.id} value={a.id}>{a.title}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-ink-muted">Prazo (opcional)</label>
+                                    <input
+                                        type="date"
+                                        value={assignForm.data.due_at}
+                                        onChange={(e) => assignForm.setData('due_at', e.target.value)}
+                                        className="mt-1 rounded-shell border-border text-sm focus:border-accent focus:ring-accent"
+                                    />
+                                </div>
+                                <button type="submit" className="rounded-shell bg-accent px-4 py-2 text-sm font-medium text-accent-ink">
+                                    Atribuir
+                                </button>
+                            </form>
+                        )}
+                        {publishableActivities.length === 0 && canManageClinical && (
+                            <p className="mt-2 text-xs text-ink-muted">
+                                Sem atividades publicadas nesta organização. <Link href={route('activities.create')} className="text-accent">Criar uma</Link>.
+                            </p>
                         )}
                     </section>
 
@@ -91,6 +167,24 @@ export default function Show({ child, canManageClinical }: { child: Child; canMa
                             <button onClick={generateDevice} className="rounded-shell bg-accent px-4 py-2 text-sm font-medium text-accent-ink">
                                 Gerar novo acesso
                             </button>
+
+                            {child.device_associations.length > 0 && (
+                                <ul className="mt-4 divide-y divide-border border-t border-border pt-3">
+                                    {child.device_associations.map((d) => (
+                                        <li key={d.id} className="flex items-center justify-between py-2 text-sm">
+                                            <span>
+                                                {d.device_identifier}
+                                                <span className="ml-2 text-xs text-ink-muted capitalize">{d.status}</span>
+                                            </span>
+                                            {d.status === 'active' && (
+                                                <button onClick={() => revokeDevice(d.id)} className="text-danger">
+                                                    Revogar
+                                                </button>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </section>
                     )}
                 </div>
@@ -99,7 +193,7 @@ export default function Show({ child, canManageClinical }: { child: Child; canMa
                     <section className="rounded-shell border border-border bg-surface p-5">
                         <h2 className="mb-2 font-semibold text-ink">Perfil</h2>
                         <dl className="space-y-1 text-sm">
-                            <div className="flex justify-between"><dt className="text-ink-muted">Nascimento</dt><dd>{child.birth_date}</dd></div>
+                            <div className="flex justify-between"><dt className="text-ink-muted">Nascimento</dt><dd>{new Date(child.birth_date).toLocaleDateString('pt-PT')}</dd></div>
                             <div className="flex justify-between"><dt className="text-ink-muted">Experiência</dt><dd>{child.visual_experience}</dd></div>
                             <div className="flex justify-between"><dt className="text-ink-muted">Estado</dt><dd className="capitalize">{child.status}</dd></div>
                         </dl>
@@ -118,24 +212,26 @@ export default function Show({ child, canManageClinical }: { child: Child; canMa
                             {child.guardian_relationships.length === 0 && <li className="text-ink-muted">Nenhum associado.</li>}
                         </ul>
 
-                        <form onSubmit={submitGuardian} className="space-y-2">
-                            <input
-                                placeholder="Nome"
-                                value={guardianForm.data.name}
-                                onChange={(e) => guardianForm.setData('name', e.target.value)}
-                                className="block w-full rounded-shell border-border text-sm focus:border-accent focus:ring-accent"
-                            />
-                            <input
-                                placeholder="Email"
-                                type="email"
-                                value={guardianForm.data.email}
-                                onChange={(e) => guardianForm.setData('email', e.target.value)}
-                                className="block w-full rounded-shell border-border text-sm focus:border-accent focus:ring-accent"
-                            />
-                            <button type="submit" className="w-full rounded-shell border border-border py-1.5 text-sm text-ink hover:bg-bg">
-                                Associar
-                            </button>
-                        </form>
+                        {canManageClinical && (
+                            <form onSubmit={submitGuardian} className="space-y-2">
+                                <input
+                                    placeholder="Nome"
+                                    value={guardianForm.data.name}
+                                    onChange={(e) => guardianForm.setData('name', e.target.value)}
+                                    className="block w-full rounded-shell border-border text-sm focus:border-accent focus:ring-accent"
+                                />
+                                <input
+                                    placeholder="Email"
+                                    type="email"
+                                    value={guardianForm.data.email}
+                                    onChange={(e) => guardianForm.setData('email', e.target.value)}
+                                    className="block w-full rounded-shell border-border text-sm focus:border-accent focus:ring-accent"
+                                />
+                                <button type="submit" className="w-full rounded-shell border border-border py-1.5 text-sm text-ink hover:bg-bg">
+                                    Associar
+                                </button>
+                            </form>
+                        )}
                     </section>
 
                     <section className="rounded-shell border border-border bg-surface p-5">

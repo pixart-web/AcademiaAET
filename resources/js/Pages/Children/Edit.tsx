@@ -17,7 +17,7 @@ export default function Edit({ child }: { child: Child }) {
     const { data, setData, put, processing, errors } = useForm({
         first_name: child.first_name,
         preferred_name: child.preferred_name ?? '',
-        birth_date: child.birth_date,
+        birth_date: child.birth_date.slice(0, 10),
         care_notes: child.care_notes ?? '',
         status: child.status,
         visual_experience: child.visual_experience,

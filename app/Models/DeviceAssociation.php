@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Hash;
 
 #[Fillable(['child_profile_id', 'device_identifier', 'status', 'expires_at', 'created_by_user_id'])]
-#[Hidden(['pin_hash'])]
+#[Hidden(['pin_hash', 'device_token_hash'])]
 class DeviceAssociation extends Model
 {
     protected function casts(): array

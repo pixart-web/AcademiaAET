@@ -19,6 +19,7 @@ export type PageProps<
 > = T & {
     auth: {
         user: User | null;
+        unreadNotifications?: number;
         child: ChildAuthSummary | null;
     };
     flash: {

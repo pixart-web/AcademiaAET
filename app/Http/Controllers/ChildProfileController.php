@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ChildStatus;
 use App\Enums\VisualExperience;
+use App\Models\Activity;
 use App\Models\ChildProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -69,11 +70,21 @@ class ChildProfileController extends Controller
             'assignedProfessionals',
             'assignments.activityVersion.activity',
             'assignments.attempts',
+            'deviceAssociations' => fn ($q) => $q->latest(),
         ]);
+
+        $publishableActivities = $request->user()->can('manageClinicalData', $child)
+            ? Activity::query()
+                ->where('organization_id', $child->organization_id)
+                ->where('status', 'published')
+                ->orderBy('title')
+                ->get(['id', 'title'])
+            : [];
 
         return Inertia::render('Children/Show', [
             'child' => $child,
             'canManageClinical' => $request->user()->can('manageClinicalData', $child),
+            'publishableActivities' => $publishableActivities,
         ]);
     }
 
