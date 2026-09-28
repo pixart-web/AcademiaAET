@@ -15,7 +15,7 @@ master prompt).
 | Convites (sem registo público) | Implementado e verificado | `UserInvitationService`; registo público removido propositadamente |
 | Ativação/desativação de contas | Implementado e verificado | `UserController@destroy/reactivate`, `EnsureAccountIsActive` |
 | MFA para contas profissionais | Implementado e verificado | TOTP, QR gerado no servidor (nunca enviado a terceiros); ligado à navegação em `Profile/Edit` |
-| Gestão/revogação de sessões | Parcial | Logout revoga a sessão atual; não existe uma lista "sessões ativas" para o utilizador revogar sessões noutros dispositivos |
+| Gestão/revogação de sessões | Implementado e verificado | "Sessões ativas" em Perfil → lista por conta (nunca doutra conta, testado), termina qualquer sessão exceto a atual |
 | Sem credenciais fixas em produção | Implementado e verificado | `DemoDataSeeder` recusa-se a correr fora de local/testing sem `APP_ALLOW_DEMO_SEEDING=true` |
 
 ## Módulo B — Gestão de crianças e jovens

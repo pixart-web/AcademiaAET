@@ -30,6 +30,14 @@ export default function Edit({
                         Gerir autenticação em dois passos
                     </Link>
                 </div>
+
+                <div className="rounded-shell border border-border bg-surface p-6">
+                    <h2 className="text-lg font-medium text-ink">Sessões ativas</h2>
+                    <p className="mt-1 text-sm text-ink-muted">Veja e termine o acesso de outros dispositivos com sessão iniciada.</p>
+                    <Link href={route('sessions.index')} className="mt-4 inline-block rounded-shell border border-border px-4 py-2 text-sm text-ink hover:bg-bg">
+                        Ver sessões ativas
+                    </Link>
+                </div>
             </div>
         </ProfessionalLayout>
     );

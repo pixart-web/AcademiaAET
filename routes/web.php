@@ -19,6 +19,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfessionalAssignmentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Settings\MfaSettingsController;
+use App\Http\Controllers\Settings\SessionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -80,6 +81,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/settings/mfa', [MfaSettingsController::class, 'edit'])->name('mfa.edit');
     Route::post('/settings/mfa', [MfaSettingsController::class, 'enable'])->name('mfa.enable');
     Route::delete('/settings/mfa', [MfaSettingsController::class, 'disable'])->name('mfa.disable');
+
+    Route::get('/settings/sessions', [SessionController::class, 'index'])->name('sessions.index');
+    Route::delete('/settings/sessions/{sessionId}', [SessionController::class, 'destroy'])->name('sessions.destroy');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
