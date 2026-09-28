@@ -13,6 +13,7 @@ interface Assignment {
     id: number;
     status: string;
     due_at: string | null;
+    is_overdue: boolean;
     child_profile: { id: number; first_name: string; preferred_name: string | null };
     activity_version: { activity: { title: string } };
 }
@@ -79,7 +80,12 @@ export default function Dashboard({
                                             {assignment.child_profile.preferred_name ?? assignment.child_profile.first_name}
                                             <span className="text-ink-muted"> — {assignment.activity_version.activity.title}</span>
                                         </span>
-                                        <span className="text-ink-muted capitalize">{assignment.status}</span>
+                                        <span className="flex items-center gap-2">
+                                            {assignment.is_overdue && (
+                                                <span className="rounded-shell bg-danger/10 px-2 py-0.5 text-xs font-medium text-danger">Atrasada</span>
+                                            )}
+                                            <span className="text-ink-muted capitalize">{assignment.status}</span>
+                                        </span>
                                     </Link>
                                 </li>
                             ))}

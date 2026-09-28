@@ -43,10 +43,10 @@ master prompt).
 | Requisito | Estado | Nota |
 |---|---|---|
 | Estados rascunho/publicada/arquivada | Implementado e verificado | |
-| Duplicação | Em falta | Não existe "duplicar atividade" |
+| Duplicação | Implementado e verificado | `ActivityController@duplicate`, cria rascunho novo, nunca uma versão da original |
 | Categorias/áreas configuráveis | Parcial | Campos de texto livre, não uma lista configurável pela clínica |
 | Dificuldade, instruções, critérios | Implementado e verificado | |
-| Pré-visualização nos 3 layouts | Em falta | A profissional não pode pré-visualizar uma atividade como cada experiência infantil a veria antes de a publicar |
+| Pré-visualização nos 3 layouts | Implementado e verificado | `Activities/Preview.tsx` — interativo, nunca persiste (sem `Attempt` criado, testado) |
 | Editor por passos (sem drag-and-drop) | Implementado e verificado | `Activities/Edit.tsx` |
 | **7 tipos de resposta** | **Implementado e verificado** | Ver nota abaixo — o relatório anterior mencionava "6 tipos" por erro de contagem, não por funcionalidade em falta |
 | Repetição verbal = instrução áudio + gravação | Implementado e verificado | `voice_recording`, sem reconhecimento automático de fala |
@@ -74,7 +74,7 @@ contagem no texto do relatório, confirmado e corrigido aqui.
 |---|---|---|
 | Atribuir com instruções/prazo/tentativas | Implementado e verificado | Formulário em `Children/Show.tsx`, ligado ao backend (corrigido nesta etapa — antes só existia a rota, sem UI) |
 | Estados claros (atribuída/iniciada/submetida/revista/cancelada) | Implementado e verificado | |
-| Indicação de atraso | Implementado, por verificar | `Assignment::isOverdue()` existe; não há indicador visual no portal ainda |
+| Indicação de atraso | Implementado e verificado | Badge "Atrasada" no Painel e no perfil da criança, derivado de `Assignment::isOverdue()`, testado |
 | Cancelamento | Implementado e verificado | Testado |
 
 ## Módulo G — Execução infantil

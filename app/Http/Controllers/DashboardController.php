@@ -33,7 +33,11 @@ class DashboardController extends Controller
             ->with(['childProfile', 'activityVersion.activity'])
             ->orderBy('due_at')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(fn (Assignment $a) => [
+                ...$a->toArray(),
+                'is_overdue' => $a->isOverdue(),
+            ]);
 
         return Inertia::render('Dashboard', [
             'pendingEvaluations' => $pendingEvaluations,

@@ -73,6 +73,8 @@ class ChildProfileController extends Controller
             'deviceAssociations' => fn ($q) => $q->latest(),
         ]);
 
+        $child->assignments->each(fn ($assignment) => $assignment->setAttribute('is_overdue', $assignment->isOverdue()));
+
         $publishableActivities = $request->user()->can('manageClinicalData', $child)
             ? Activity::query()
                 ->where('organization_id', $child->organization_id)

@@ -21,6 +21,7 @@ interface AssignmentRow {
     id: number;
     status: string;
     due_at: string | null;
+    is_overdue: boolean;
     activity_version: { activity: { id: number; title: string } };
     attempts: { id: number; status: string }[];
 }
@@ -109,6 +110,9 @@ export default function Show({
                                     <li key={a.id} className="flex items-center justify-between py-2 text-sm">
                                         <span>{a.activity_version.activity.title}</span>
                                         <span className="flex items-center gap-3">
+                                            {a.is_overdue && (
+                                                <span className="rounded-shell bg-danger/10 px-2 py-0.5 text-xs font-medium text-danger">Atrasada</span>
+                                            )}
                                             <span className="text-ink-muted">{STATUS_LABEL[a.status] ?? a.status}</span>
                                             {canManageClinical && ['assigned', 'started'].includes(a.status) && (
                                                 <button onClick={() => cancelAssignment(a.id)} className="text-danger">
