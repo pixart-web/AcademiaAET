@@ -69,10 +69,12 @@ const STATUS_LABEL: Record<string, string> = {
 export default function Show({
     child,
     canManageClinical,
+    canDelete,
     publishableActivities,
 }: {
     child: Child;
     canManageClinical: boolean;
+    canDelete: boolean;
     publishableActivities: { id: number; title: string }[];
 }) {
     const { flash } = usePage<PageProps>().props;
@@ -208,6 +210,26 @@ export default function Show({
                             )}
                         </section>
                     )}
+
+                    {canDelete && (
+                        <section className="rounded-shell border border-danger/30 bg-surface p-5">
+                            <h2 className="mb-2 font-semibold text-danger">Dados e privacidade</h2>
+                            <a
+                                href={route('children.export', child.id)}
+                                className="inline-block rounded-shell border border-border px-4 py-2 text-sm text-ink hover:bg-bg"
+                            >
+                                Exportar todos os dados (JSON)
+                            </a>
+
+                            <div className="mt-4 border-t border-border pt-4">
+                                <p className="mb-2 text-sm text-ink-muted">
+                                    Elimina permanentemente este perfil e todos os dados associados (atribuições, respostas,
+                                    avaliações, notas, consentimentos, dispositivos). <strong>Não pode ser desfeito.</strong>
+                                </p>
+                                <EraseForm childId={child.id} confirmName={child.first_name} />
+                            </div>
+                        </section>
+                    )}
                 </div>
 
                 <div className="space-y-6">
@@ -313,5 +335,38 @@ export default function Show({
                 </div>
             </div>
         </ProfessionalLayout>
+    );
+}
+
+function EraseForm({ childId, confirmName }: { childId: number; confirmName: string }) {
+    const { data, setData, delete: destroy, processing, errors } = useForm({ confirm_name: '' });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        if (!window.confirm('Tem a certeza? Esta ação elimina tudo permanentemente e não pode ser desfeita.')) {
+            return;
+        }
+        destroy(route('children.erase', childId));
+    };
+
+    return (
+        <form onSubmit={submit} className="space-y-2">
+            <label className="block text-xs text-ink-muted">
+                Escreva o primeiro nome ("{confirmName}") para confirmar
+            </label>
+            <input
+                value={data.confirm_name}
+                onChange={(e) => setData('confirm_name', e.target.value)}
+                className="block w-full rounded-shell border-border text-sm focus:border-danger focus:ring-danger"
+            />
+            {errors.confirm_name && <p className="text-sm text-danger">{errors.confirm_name}</p>}
+            <button
+                type="submit"
+                disabled={processing || data.confirm_name !== confirmName}
+                className="w-full rounded-shell bg-danger px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+            >
+                Eliminar permanentemente
+            </button>
+        </form>
     );
 }

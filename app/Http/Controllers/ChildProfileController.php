@@ -6,6 +6,8 @@ use App\Enums\ChildStatus;
 use App\Enums\VisualExperience;
 use App\Models\Activity;
 use App\Models\ChildProfile;
+use App\Services\AuditLogger;
+use App\Services\ChildDataService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -87,6 +89,7 @@ class ChildProfileController extends Controller
         return Inertia::render('Children/Show', [
             'child' => $child,
             'canManageClinical' => $request->user()->can('manageClinicalData', $child),
+            'canDelete' => $request->user()->can('delete', $child),
             'publishableActivities' => $publishableActivities,
         ]);
     }
@@ -127,6 +130,46 @@ class ChildProfileController extends Controller
         $child->update(['status' => ChildStatus::Archived]);
         $child->delete();
 
+        AuditLogger::log('child.archived', $child);
+
         return redirect()->route('children.index')->with('status', 'Perfil arquivado.');
+    }
+
+    /**
+     * Full data export for a compliance request (subject access) — includes
+     * clinical notes, since this is the clinic's own record, not something
+     * shown to the child. Downloaded directly, never emailed.
+     */
+    public function export(Request $request, ChildProfile $child, ChildDataService $data): \Symfony\Component\HttpFoundation\Response
+    {
+        $this->authorize('manageClinicalData', $child);
+
+        AuditLogger::log('child.exported', $child);
+
+        $filename = 'academia-aet-'.$child->id.'-'.now()->format('Ymd-His').'.json';
+
+        return response()->json($data->export($child))
+            ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+    }
+
+    /**
+     * Irreversible. Requires the admin to type the child's own first name as
+     * confirmation (checked server-side, not just disabled by the UI).
+     */
+    public function eraseCompletely(Request $request, ChildProfile $child, ChildDataService $data): RedirectResponse
+    {
+        $this->authorize('delete', $child);
+
+        $request->validate(['confirm_name' => ['required', 'string']]);
+
+        if (trim($request->string('confirm_name')) !== $child->first_name) {
+            return back()->withErrors(['confirm_name' => 'O nome não corresponde. Nada foi eliminado.']);
+        }
+
+        AuditLogger::log('child.erased_permanently', $child, ['first_name' => $child->first_name], $child->organization_id);
+
+        $data->eraseCompletely($child);
+
+        return redirect()->route('children.index')->with('status', 'Todos os dados deste perfil foram eliminados permanentemente.');
     }
 }

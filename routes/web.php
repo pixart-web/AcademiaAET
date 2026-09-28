@@ -48,6 +48,8 @@ Route::middleware(['auth', 'role:admin,professional'])->group(function () {
     Route::post('children/{child}/assignments', [AssignmentController::class, 'store'])->name('children.assignments.store');
     Route::post('children/{child}/devices', [DeviceAssociationController::class, 'store'])->name('children.devices.store');
     Route::patch('children/{child}/devices/{device}/revoke', [DeviceAssociationController::class, 'revoke'])->name('children.devices.revoke');
+    Route::get('children/{child}/export', [ChildProfileController::class, 'export'])->name('children.export');
+    Route::delete('children/{child}/erase', [ChildProfileController::class, 'eraseCompletely'])->name('children.erase');
 
     Route::delete('assignments/{assignment}', [AssignmentController::class, 'cancel'])->name('assignments.cancel');
 
