@@ -34,7 +34,7 @@ master prompt).
 |---|---|---|
 | Upload imagem/áudio/vídeo/documento | Implementado e verificado | `MediaAssetController`, tipo real por `finfo`, não extensão |
 | Metadados (título, descrição, alt, transcrição) | Implementado e verificado | Alt/transcrição obrigatórios para imagem/áudio/vídeo |
-| Pré-visualização e arquivo | Parcial | Arquivar existe; pré-visualização na biblioteca é só o título/tipo, sem thumbnail/player inline na listagem |
+| Pré-visualização e arquivo | Implementado e verificado | Arquivar existe; a listagem mostra miniatura/leitor inline (imagem/áudio/vídeo) via URL assinada de curta duração, tal como no resto do sistema |
 | Limites configuráveis | Parcial | Limites de tamanho por tipo estão fixos no código (`MediaAssetController::MAX_SIZE_KB`), não configuráveis via UI |
 | Armazenamento privado | Implementado e verificado | Disco `local` sem `serve`, só acessível via `MediaStreamController` com URL assinada de curta duração |
 

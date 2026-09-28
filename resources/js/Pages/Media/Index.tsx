@@ -7,6 +7,7 @@ interface MediaItem {
     title: string | null;
     kind: string;
     alt_text: string | null;
+    preview_url: string | null;
 }
 
 interface Paginated<T> {
@@ -81,6 +82,15 @@ export default function Index({ media }: { media: Paginated<MediaItem> }) {
                 <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2 lg:grid-cols-3">
                     {media.data.map((item) => (
                         <div key={item.id} className="rounded-shell border border-border bg-surface p-3">
+                            {item.kind === 'image' && item.preview_url && (
+                                <img src={item.preview_url} alt={item.alt_text ?? ''} className="mb-2 h-24 w-full rounded-shell object-cover" />
+                            )}
+                            {item.kind === 'audio' && item.preview_url && (
+                                <audio controls src={item.preview_url} className="mb-2 w-full" />
+                            )}
+                            {item.kind === 'video' && item.preview_url && (
+                                <video controls src={item.preview_url} className="mb-2 h-24 w-full rounded-shell object-cover" />
+                            )}
                             <p className="truncate font-medium text-ink">{item.title ?? 'Sem título'}</p>
                             <p className="text-xs capitalize text-ink-muted">{item.kind}</p>
                             <button

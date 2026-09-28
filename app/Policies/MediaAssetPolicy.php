@@ -7,6 +7,11 @@ use App\Models\User;
 
 class MediaAssetPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->isAdmin() || $user->isProfessional();
+    }
+
     public function view(User $user, MediaAsset $media): bool
     {
         return $user->organization_id === $media->organization_id;

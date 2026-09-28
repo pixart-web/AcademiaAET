@@ -6,6 +6,7 @@ use App\Enums\MediaKind;
 use App\Models\MediaAsset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -13,8 +14,8 @@ use Inertia\Response;
 class MediaAssetController extends Controller
 {
     /**
-     * Allow-listed by real (finfo-detected) mime type, not by extension or the
-     * browser-supplied Content-Type — see security-review notes in docs/security.md.
+     * Allow-listed by real (finfo-detected) mime type, not by extension or
+     * the browser-supplied Content-Type.
      */
     private const ALLOWED_MIME_BY_KIND = [
         'image' => ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'],
@@ -39,6 +40,13 @@ class MediaAssetController extends Controller
             ->latest()
             ->paginate(24)
             ->withQueryString();
+
+        $media->getCollection()->transform(fn (MediaAsset $asset) => [
+            ...$asset->toArray(),
+            'preview_url' => in_array($asset->kind, [MediaKind::Image, MediaKind::Audio, MediaKind::Video], true)
+                ? URL::temporarySignedRoute('media.show', now()->addMinutes(15), ['media' => $asset->id])
+                : null,
+        ]);
 
         return Inertia::render('Media/Index', ['media' => $media]);
     }
