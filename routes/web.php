@@ -55,6 +55,8 @@ Route::middleware(['auth', 'role:admin,professional'])->group(function () {
     Route::put('activities/{activity}', [ActivityController::class, 'update'])->name('activities.update');
     Route::post('activities/{activity}/publish', [ActivityController::class, 'publish'])->name('activities.publish');
     Route::post('activities/{activity}/archive', [ActivityController::class, 'archive'])->name('activities.archive');
+    Route::post('activities/{activity}/duplicate', [ActivityController::class, 'duplicate'])->name('activities.duplicate');
+    Route::get('activities/{activity}/preview', [ActivityController::class, 'preview'])->name('activities.preview');
     Route::delete('activities/{activity}', [ActivityController::class, 'destroy'])->name('activities.destroy');
 
     Route::get('media', [MediaAssetController::class, 'index'])->name('media.index');

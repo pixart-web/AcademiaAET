@@ -1,5 +1,5 @@
 import ProfessionalLayout from '@/Layouts/ProfessionalLayout';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
 interface StepForm {
@@ -100,6 +100,18 @@ export default function Edit({ activity, responseTypes }: { activity: ActivityDa
                             Arquivar
                         </button>
                     )}
+                    <Link
+                        href={route('activities.preview', activity.id)}
+                        className="rounded-shell border border-border px-3 py-1.5 text-sm text-ink"
+                    >
+                        Pré-visualizar
+                    </Link>
+                    <button
+                        onClick={() => router.post(route('activities.duplicate', activity.id))}
+                        className="rounded-shell border border-border px-3 py-1.5 text-sm text-ink"
+                    >
+                        Duplicar
+                    </button>
                 </div>
             )}
 
