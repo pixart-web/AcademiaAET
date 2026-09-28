@@ -34,6 +34,15 @@ interface DeviceAssociation {
     last_used_at: string | null;
 }
 
+interface ConsentRecord {
+    id: number;
+    type: string;
+    text_version: string;
+    granted_at: string;
+    revoked_at: string | null;
+    granted_by: { name: string };
+}
+
 interface Child {
     id: number;
     first_name: string;
@@ -46,6 +55,7 @@ interface Child {
     assigned_professionals: Professional[];
     assignments: AssignmentRow[];
     device_associations: DeviceAssociation[];
+    consent_records: ConsentRecord[];
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -85,6 +95,13 @@ export default function Show({
 
     const generateDevice = () => router.post(route('children.devices.store', child.id));
     const revokeDevice = (deviceId: number) => router.patch(route('children.devices.revoke', [child.id, deviceId]));
+
+    const consentForm = useForm({ type: 'tratamento_dados', text_version: '' });
+    const submitConsent: FormEventHandler = (e) => {
+        e.preventDefault();
+        consentForm.post(route('children.consents.store', child.id), { onSuccess: () => consentForm.reset('text_version') });
+    };
+    const revokeConsent = (consentId: number) => router.patch(route('children.consents.revoke', [child.id, consentId]));
 
     return (
         <ProfessionalLayout title={child.preferred_name ?? child.first_name} description={`Experiência: ${child.visual_experience} anos`}>
@@ -246,6 +263,52 @@ export default function Show({
                             ))}
                             {child.assigned_professionals.length === 0 && <li className="text-ink-muted">Nenhuma associada.</li>}
                         </ul>
+                    </section>
+
+                    <section className="rounded-shell border border-border bg-surface p-5">
+                        <h2 className="mb-2 font-semibold text-ink">Consentimentos</h2>
+                        <p className="mb-3 text-xs text-ink-muted">
+                            Regista aqui que um adulto autorizado deu consentimento (presencial ou em papel) — não é um texto legal, só o registo de qual versão foi usada.
+                        </p>
+                        <ul className="mb-3 space-y-2 text-sm">
+                            {child.consent_records.map((c) => (
+                                <li key={c.id} className="flex items-center justify-between">
+                                    <span>
+                                        {c.type} <span className="text-ink-muted">(v{c.text_version})</span>
+                                        {c.revoked_at && <span className="ml-1 text-xs text-danger">revogado</span>}
+                                    </span>
+                                    {!c.revoked_at && canManageClinical && (
+                                        <button onClick={() => revokeConsent(c.id)} className="text-xs text-danger">
+                                            Revogar
+                                        </button>
+                                    )}
+                                </li>
+                            ))}
+                            {child.consent_records.length === 0 && <li className="text-ink-muted">Nenhum consentimento registado.</li>}
+                        </ul>
+
+                        {canManageClinical && (
+                            <form onSubmit={submitConsent} className="space-y-2">
+                                <select
+                                    value={consentForm.data.type}
+                                    onChange={(e) => consentForm.setData('type', e.target.value)}
+                                    className="block w-full rounded-shell border-border text-sm focus:border-accent focus:ring-accent"
+                                >
+                                    <option value="tratamento_dados">Tratamento de dados</option>
+                                    <option value="gravacoes">Gravações (voz/vídeo)</option>
+                                    <option value="comunicacoes">Comunicações por email</option>
+                                </select>
+                                <input
+                                    placeholder="Versão do texto (ex.: 2026-01)"
+                                    value={consentForm.data.text_version}
+                                    onChange={(e) => consentForm.setData('text_version', e.target.value)}
+                                    className="block w-full rounded-shell border-border text-sm focus:border-accent focus:ring-accent"
+                                />
+                                <button type="submit" className="w-full rounded-shell border border-border py-1.5 text-sm text-ink hover:bg-bg">
+                                    Registar consentimento
+                                </button>
+                            </form>
+                        )}
                     </section>
                 </div>
             </div>

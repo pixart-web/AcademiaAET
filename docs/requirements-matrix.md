@@ -141,7 +141,7 @@ contagem no texto do relatório, confirmado e corrigido aqui.
 | Segredos em variáveis de ambiente | Implementado e verificado | |
 | Auditoria com acesso restrito | Implementado, por verificar | `AuditLogger` grava login de equipa, ativar/desativar conta, avaliação criada, MFA ativado/desativado, e emissão/revogação de acesso de dispositivo (testado). **Não** cobre ainda toda a ação sensível possível (ex.: edição de perfil de criança, criação/edição de atividade, associação de encarregado de educação) — é um conjunto inicial, não exaustivo. Sem UI de consulta dos eventos ainda. |
 | Retenção configurável / exportação / eliminação | Em falta | Soft deletes existem (permitem reposição), mas não há UI administrativa de exportação/eliminação nem política de retenção configurável |
-| Consentimentos com versão/autor/data | Implementado, por verificar | Tabela `consent_records` existe no esquema com estes campos; não há ainda UI para os criar/consultar |
+| Consentimentos com versão/autor/data | Implementado e verificado | `ConsentRecordController` + secção no perfil da criança; regista tipo/versão/autor/data, revogável; nenhum texto legal é escrito pelo sistema, só qual versão do texto da clínica foi usada |
 
 ## Acessibilidade
 

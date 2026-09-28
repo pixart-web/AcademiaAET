@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\ChildSessionController;
 use App\Http\Controllers\ChildFeedbackController;
 use App\Http\Controllers\ChildHomeController;
 use App\Http\Controllers\ChildProfileController;
+use App\Http\Controllers\ConsentRecordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceAssociationController;
 use App\Http\Controllers\EvaluationController;
@@ -42,6 +43,8 @@ Route::middleware(['auth', 'role:admin,professional'])->group(function () {
     Route::delete('children/{child}/professionals/{assignment}', [ProfessionalAssignmentController::class, 'destroy'])->name('children.professionals.destroy');
     Route::post('children/{child}/guardians', [GuardianRelationshipController::class, 'store'])->name('children.guardians.store');
     Route::delete('children/{child}/guardians/{relationship}', [GuardianRelationshipController::class, 'destroy'])->name('children.guardians.destroy');
+    Route::post('children/{child}/consents', [ConsentRecordController::class, 'store'])->name('children.consents.store');
+    Route::patch('children/{child}/consents/{consent}/revoke', [ConsentRecordController::class, 'revoke'])->name('children.consents.revoke');
     Route::post('children/{child}/assignments', [AssignmentController::class, 'store'])->name('children.assignments.store');
     Route::post('children/{child}/devices', [DeviceAssociationController::class, 'store'])->name('children.devices.store');
     Route::patch('children/{child}/devices/{device}/revoke', [DeviceAssociationController::class, 'revoke'])->name('children.devices.revoke');

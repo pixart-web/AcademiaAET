@@ -71,6 +71,7 @@ class ChildProfileController extends Controller
             'assignments.activityVersion.activity',
             'assignments.attempts',
             'deviceAssociations' => fn ($q) => $q->latest(),
+            'consentRecords' => fn ($q) => $q->with('grantedBy')->latest('granted_at'),
         ]);
 
         $child->assignments->each(fn ($assignment) => $assignment->setAttribute('is_overdue', $assignment->isOverdue()));
