@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\ResponseType;
 use App\Models\Activity;
 use App\Services\ActivityVersioningService;
+use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -107,6 +108,7 @@ class ActivityController extends Controller
         $this->authorize('publish', $activity);
 
         $versioning->publish($activity->currentVersion);
+        AuditLogger::log('activity.published', $activity);
 
         return back()->with('status', 'Atividade publicada.');
     }
@@ -116,6 +118,7 @@ class ActivityController extends Controller
         $this->authorize('archive', $activity);
 
         $activity->update(['status' => 'archived']);
+        AuditLogger::log('activity.archived', $activity);
 
         return back()->with('status', 'Atividade arquivada.');
     }

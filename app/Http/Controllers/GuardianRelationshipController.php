@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\ChildProfile;
 use App\Models\GuardianRelationship;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\UserInvitationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,13 +32,15 @@ class GuardianRelationshipController extends Controller
             $guardian = $invitations->invite($child->organization, $data['name'], $data['email'], UserRole::Guardian);
         }
 
-        GuardianRelationship::query()->firstOrCreate([
+        $relationship = GuardianRelationship::query()->firstOrCreate([
             'child_profile_id' => $child->id,
             'user_id' => $guardian->id,
         ], [
             'relationship_type' => $data['relationship_type'],
             'status' => 'active',
         ]);
+
+        AuditLogger::log('guardian.associated', $child, ['guardian_relationship_id' => $relationship->id]);
 
         return back()->with('status', 'Encarregado de educação associado.');
     }

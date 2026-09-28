@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ChildProfile;
 use App\Models\ProfessionalAssignment;
 use App\Models\User;
+use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -29,6 +30,8 @@ class ProfessionalAssignmentController extends Controller
             ['assigned_by_user_id' => $request->user()->id, 'started_at' => now()],
         );
 
+        AuditLogger::log('professional.assigned', $child, ['professional_id' => $professional->id]);
+
         return back()->with('status', 'Terapeuta associada.');
     }
 
@@ -38,6 +41,8 @@ class ProfessionalAssignmentController extends Controller
         abort_unless($assignment->child_profile_id === $child->id, 404);
 
         $assignment->update(['active' => false, 'ended_at' => now()]);
+
+        AuditLogger::log('professional.unassigned', $child, ['professional_id' => $assignment->user_id]);
 
         return back()->with('status', 'Associação terminada.');
     }

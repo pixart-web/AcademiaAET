@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AuditLogger;
 use App\Services\MfaService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Http\RedirectResponse;
@@ -64,6 +65,7 @@ class MfaChallengeController extends Controller
 
         Auth::login($user, $remember);
         $request->session()->regenerate();
+        AuditLogger::log('staff.login', $user, ['mfa' => true], userId: $user->id);
 
         return redirect()->intended(AuthenticatedSessionController::homeRouteFor($user));
     }
