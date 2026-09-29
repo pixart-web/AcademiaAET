@@ -66,16 +66,25 @@ const STATUS_LABEL: Record<string, string> = {
     cancelled: 'Cancelada',
 };
 
+interface Summary {
+    total: number;
+    completed: number;
+    pending_evaluation: number;
+    overdue: number;
+}
+
 export default function Show({
     child,
     canManageClinical,
     canDelete,
     publishableActivities,
+    summary,
 }: {
     child: Child;
     canManageClinical: boolean;
     canDelete: boolean;
     publishableActivities: { id: number; title: string }[];
+    summary: Summary;
 }) {
     const { flash } = usePage<PageProps>().props;
 
@@ -115,6 +124,25 @@ export default function Show({
                     <p>Introduza no dispositivo da criança. Estes valores não voltam a ser mostrados.</p>
                 </div>
             )}
+
+            <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-shell border border-border bg-surface p-4 text-center">
+                    <p className="text-2xl font-semibold text-ink">{summary.total}</p>
+                    <p className="text-xs text-ink-muted">Atividades atribuídas</p>
+                </div>
+                <div className="rounded-shell border border-border bg-surface p-4 text-center">
+                    <p className="text-2xl font-semibold text-ink">{summary.completed}</p>
+                    <p className="text-xs text-ink-muted">Concluídas</p>
+                </div>
+                <div className="rounded-shell border border-border bg-surface p-4 text-center">
+                    <p className="text-2xl font-semibold text-accent">{summary.pending_evaluation}</p>
+                    <p className="text-xs text-ink-muted">Por avaliar</p>
+                </div>
+                <div className="rounded-shell border border-border bg-surface p-4 text-center">
+                    <p className={`text-2xl font-semibold ${summary.overdue > 0 ? 'text-danger' : 'text-ink'}`}>{summary.overdue}</p>
+                    <p className="text-xs text-ink-muted">Atrasadas</p>
+                </div>
+            </div>
 
             <div className="grid gap-6 lg:grid-cols-3">
                 <div className="space-y-6 lg:col-span-2">

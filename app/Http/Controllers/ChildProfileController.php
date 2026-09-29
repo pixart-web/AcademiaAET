@@ -86,11 +86,22 @@ class ChildProfileController extends Controller
                 ->get(['id', 'title'])
             : [];
 
+        $summary = [
+            'total' => $child->assignments->count(),
+            // ->status is an AssignmentStatus enum instance, not a string — a
+            // loose Collection::where() comparison against a plain string
+            // never matches a backed enum, so compare ->value explicitly.
+            'completed' => $child->assignments->whereIn('status.value', ['submitted', 'reviewed'])->count(),
+            'pending_evaluation' => $child->assignments->where('status.value', 'submitted')->count(),
+            'overdue' => $child->assignments->filter->is_overdue->count(),
+        ];
+
         return Inertia::render('Children/Show', [
             'child' => $child,
             'canManageClinical' => $request->user()->can('manageClinicalData', $child),
             'canDelete' => $request->user()->can('delete', $child),
             'publishableActivities' => $publishableActivities,
+            'summary' => $summary,
         ]);
     }
 

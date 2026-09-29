@@ -26,7 +26,7 @@ master prompt).
 | Profissional responsável | Implementado e verificado | `ProfessionalAssignment` |
 | Relações autorizadas (encarregados) | Implementado e verificado | `GuardianRelationship`, convite igual ao da equipa |
 | Experiência visual por perfil | Implementado e verificado | Sugerida por idade na criação, sempre editável pela profissional, nunca muda sozinha no aniversário |
-| Áreas separadas: histórico/resultados/notas | Parcial | Histórico e notas existem e estão corretamente isolados (ver Segurança); não há um ecrã dedicado de "resultados agregados" para a profissional além da lista de atribuições |
+| Áreas separadas: histórico/resultados/notas | Implementado e verificado | Histórico e notas isolados (ver Segurança); resumo numérico (atribuídas/concluídas/por avaliar/atrasadas) no perfil da criança — números, não gráficos, por decisão deliberada de âmbito |
 
 ## Módulo C — Biblioteca de conteúdos
 
@@ -116,7 +116,7 @@ contagem no texto do relatório, confirmado e corrigido aqui.
 
 | Requisito | Estado | Nota |
 |---|---|---|
-| Histórico de atividades/resultados | Parcial | Existe por criança (`Children/Show`) e por atribuição (feedback da criança); não há um dashboard de tendências/indicadores agregados |
+| Histórico de atividades/resultados | Implementado e verificado | Por criança (`Children/Show`, com resumo numérico) e por atribuição (feedback da criança); sem dashboard de tendências — ver linha seguinte |
 | Gráficos avançados / sinalização de resultados baixos | Em falta | Explicitamente marcado no master prompt como extensão opcional — não bloqueia a entrega base |
 | Sem monitorização em direto/videochamada | Implementado e verificado | Nada disto existe |
 
