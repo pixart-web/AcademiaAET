@@ -20,6 +20,17 @@ master prompt).
 > os testes foram reforçados para verificar o estado real, não só o
 > efeito colateral. Isto foi encontrado ao escrever testes novos para MFA
 > que falharam à primeira tentativa, não por revisão de código.
+>
+> **Bug relacionado, mesma ronda**: `ChildProfile.care_notes` estava
+> marcado `#[Hidden]` no modelo — pensado para nunca ser exposto ao lado
+> da criança, mas essa proteção já era feita por seleção explícita de
+> campos noutro sítio (`HandleInertiaRequests`, API), tornando o `#[Hidden]`
+> redundante. O efeito real: a própria página "Editar perfil" da equipa
+> também nunca recebia o valor, pelo que abrir o formulário mostrava
+> sempre uma nota em branco — e guardar sem reescrever a nota manualmente
+> **apagava silenciosamente** qualquer nota clínica já existente. Corrigido
+> (removido o `#[Hidden]`); confirmado ao vivo no browser que o formulário
+> agora vem pré-preenchido.
 
 ## Módulo A — Autenticação e contas
 

@@ -7,7 +7,6 @@ use App\Enums\VisualExperience;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,11 +21,20 @@ use Laravel\Sanctum\HasApiTokens;
  * directly after a device+PIN check — children never have a password, only a
  * device-scoped PIN validated against DeviceAssociation before login() is called.
  */
+/**
+ * care_notes is deliberately NOT #[Hidden] — the child-facing side never
+ * serializes this model at all (HandleInertiaRequests and the API's
+ * ChildMeController both hand-pick an explicit, separate field list for
+ * auth.child), so hiding it here bought no real protection and only broke
+ * the staff edit form: Inertia's serialization would silently strip the
+ * value, so opening "Editar perfil" for any reason and saving would wipe
+ * out any existing care_notes. Found via the same audit that caught the
+ * $fillable mass-assignment bugs, not by reading this comment first.
+ */
 #[Fillable([
     'organization_id', 'first_name', 'preferred_name', 'birth_date',
     'visual_experience', 'visual_experience_overridden', 'status', 'care_notes', 'is_demo',
 ])]
-#[Hidden(['care_notes'])]
 class ChildProfile extends Model implements AuthenticatableContract
 {
     use Authenticatable, HasApiTokens, HasFactory, SoftDeletes;
