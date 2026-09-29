@@ -83,7 +83,7 @@ correr em produção. Ver README.md para as credenciais.
 
 ```
 php artisan test
-→ 87 testes, 290 assertions, todos a passar (última execução nesta sessão)
+→ 88 testes, 293 assertions, todos a passar (última execução nesta sessão)
 ```
 
 26 ficheiros de teste, cobrindo:
@@ -122,8 +122,11 @@ php artisan test
 
 ### O que não foi testado automaticamente
 
-- Categorias/áreas de atividade e limites de upload continuam texto
-  livre/fixos no código — não há UI de configuração para testar.
+- Categorias/áreas de atividade continuam texto livre — não há UI de
+  configuração para testar. Limites de upload deixaram de estar fixos no
+  código: agora vêm de `config/media.php` (`MEDIA_MAX_*_KB` no `.env`),
+  com teste a confirmar que baixar o limite por configuração é respeitado
+  — mas continua sem UI de administração, só variável de ambiente.
 - Não foi feita uma segunda auditoria de `->update()`/`::create()` para
   garantir que nenhum novo campo ficou de fora de `$fillable` desde esta
   correção — vale a pena repetir sempre que um campo novo for adicionado

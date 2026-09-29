@@ -24,13 +24,6 @@ class MediaAssetController extends Controller
         'document' => ['application/pdf'],
     ];
 
-    private const MAX_SIZE_KB = [
-        'image' => 8 * 1024,
-        'audio' => 25 * 1024,
-        'video' => 100 * 1024,
-        'document' => 15 * 1024,
-    ];
-
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', MediaAsset::class);
@@ -67,7 +60,7 @@ class MediaAssetController extends Controller
 
         $file = $request->file('file');
         $request->validate([
-            'file' => ['required', 'file', 'max:'.self::MAX_SIZE_KB[$data['kind']]],
+            'file' => ['required', 'file', 'max:'.config('media.max_size_kb.'.$data['kind'])],
         ]);
 
         $detectedMime = $file->getMimeType();

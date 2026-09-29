@@ -59,6 +59,31 @@ class MediaLibraryTest extends TestCase
         $this->assertDatabaseMissing('media_assets', ['title' => 'Sem alt']);
     }
 
+    /**
+     * Upload size limits were previously hardcoded constants in the
+     * controller; now they're read from config/media.php (overridable via
+     * MEDIA_MAX_*_KB env vars). This confirms the validation rule really
+     * follows a lowered config value, not a leftover hardcoded number.
+     */
+    public function test_upload_size_limit_is_read_from_config(): void
+    {
+        config(['media.max_size_kb.image' => 1]);
+
+        $org = Organization::factory()->create();
+        $pro = User::factory()->for($org)->create();
+
+        $file = UploadedFile::fake()->image('foto.png', 100, 100)->size(50);
+
+        $this->actingAs($pro)->post(route('media.store'), [
+            'kind' => 'image',
+            'title' => 'Excede o limite',
+            'alt_text' => 'Exemplo de demonstração.',
+            'file' => $file,
+        ])->assertSessionHasErrors('file');
+
+        $this->assertDatabaseMissing('media_assets', ['title' => 'Excede o limite']);
+    }
+
     public function test_professional_from_another_organization_cannot_archive_media(): void
     {
         $org = Organization::factory()->create();

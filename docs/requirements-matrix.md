@@ -80,7 +80,7 @@ master prompt).
 | Upload imagem/áudio/vídeo/documento | Implementado e verificado | `MediaAssetController`, tipo real por `finfo`, não extensão |
 | Metadados (título, descrição, alt, transcrição) | Implementado e verificado | Alt/transcrição obrigatórios para imagem/áudio/vídeo |
 | Pré-visualização e arquivo | Implementado e verificado | Arquivar existe; a listagem mostra miniatura/leitor inline (imagem/áudio/vídeo) via URL assinada de curta duração, tal como no resto do sistema |
-| Limites configuráveis | Parcial | Limites de tamanho por tipo estão fixos no código (`MediaAssetController::MAX_SIZE_KB`), não configuráveis via UI |
+| Limites configuráveis | Implementado e verificado | Limites de tamanho por tipo movidos para `config/media.php`, ajustáveis por variável de ambiente (`MEDIA_MAX_IMAGE_KB` etc., ver `.env.example`) sem tocar em código; ainda não há UI de administração para o fazer sem acesso ao servidor. Testado: baixar o limite via config e confirmar que o upload passa a ser recusado |
 | Armazenamento privado | Implementado e verificado | Disco `local` sem `serve`, só acessível via `MediaStreamController` com URL assinada de curta duração |
 
 ## Módulo D — Biblioteca e editor de atividades
