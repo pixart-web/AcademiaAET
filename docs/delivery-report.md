@@ -83,7 +83,7 @@ correr em produção. Ver README.md para as credenciais.
 
 ```
 php artisan test
-→ 85 testes, 279 assertions, todos a passar (última execução nesta sessão)
+→ 87 testes, 290 assertions, todos a passar (última execução nesta sessão)
 ```
 
 26 ficheiros de teste, cobrindo:
@@ -128,6 +128,11 @@ php artisan test
   garantir que nenhum novo campo ficou de fora de `$fillable` desde esta
   correção — vale a pena repetir sempre que um campo novo for adicionado
   a um modelo existente.
+- Foi feita uma auditoria de seguimento às comparações `->where()`/
+  `->whereIn()` contra `status`/`role`/`kind`/`type` em toda a app, à
+  procura da mesma classe de bug do `care_notes` (comparação de enum já
+  carregado em `Collection` contra string simples). Não encontrou mais
+  nenhuma instância real — detalhe em `docs/requirements-matrix.md`.
 
 ## Browsers e dispositivos realmente testados
 

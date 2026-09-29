@@ -31,6 +31,25 @@ master prompt).
 > **apagava silenciosamente** qualquer nota clínica já existente. Corrigido
 > (removido o `#[Hidden]`); confirmado ao vivo no browser que o formulário
 > agora vem pré-preenchido.
+>
+> **Auditoria de seguimento (mesma ronda, depois da correção acima)**: por
+> precaução, revi todas as outras 17 chamadas `->where()`/`->whereIn()` no
+> código contra `status`/`role`/`kind`/`type` para procurar a mesma classe
+> de bug (comparação de um enum já carregado em `Collection` do PHP contra
+> uma string simples, que nunca é verdadeira). Todas as restantes — em
+> `DashboardController`, `EvaluationController`, `UserController`,
+> `AssignmentController`, `MediaAssetController`,
+> `ProfessionalAssignmentController`, `Api\AssignmentController`,
+> `AttemptService`, `DeviceAuthService`, `ChildHomeController` — são
+> chamadas sobre um query builder do Eloquent (`Model::query()->where(...)`
+> ou `$model->relacao()->where(...)`, sempre antes de `->get()`/`->first()`/
+> `->paginate()`), que compilam para SQL `WHERE coluna = ...` sobre o valor
+> em bruto da base de dados — não são afetadas pelo cast do enum em PHP.
+> Confirmei que nenhuma delas repete o bug. A única instância real
+> encontrada continua a ser a de `ChildProfileController::show()` (já
+> corrigida acima, com `'status.value'`), que operava sobre
+> `$child->assignments` já carregado como `Collection`, não sobre uma nova
+> query.
 
 ## Módulo A — Autenticação e contas
 
