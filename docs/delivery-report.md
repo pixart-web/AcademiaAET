@@ -32,6 +32,26 @@ utilizadores — só descoberto ao carregar mesmo a página no browser, não
 por leitura de código, o que motivou escrever também o primeiro teste de
 feature para esse controller (não existia nenhum).
 
+Numa terceira ronda (commits `9d6350d`…`a3c89a8`): mais um **bug crítico
+real e mais grave**, encontrado da mesma forma (a escrever um teste, não a
+ler código) — `User`, `Assignment` e `DeviceAssociation` não tinham
+`disabled_at`/`mfa_enabled`/`mfa_secret`/`cancelled_at`/`revoked_at`/
+`revoked_by_user_id` na lista `$fillable`. O botão "Desativar" uma conta,
+ativar/desativar MFA, cancelar uma atribuição e revogar um dispositivo
+pareciam funcionar (redirecionamento, mensagem de sucesso, e nalguns casos
+até o evento de auditoria) mas a **base de dados nunca mudava**. Confirmado
+ao vivo no browser: desativei a conta da terapeuta de demonstração,
+verifiquei por `tinker` que `disabled_at` continuava `null` antes da
+correção e passou a ter data depois. Corrigido; testes reforçados para
+verificar o valor real do campo, não só o redirecionamento.
+
+Repeti também o percurso completo (atribuir → entrar → responder aos 3
+tipos de passo da atividade de demonstração → guardar/retomar após uma
+interrupção de sessão a meio → submeter → avaliar → consultar feedback)
+na experiência de **14–18 anos**, que só tinha sido verificada
+parcialmente antes — incluindo confirmar ao vivo que uma criança recebe
+403 ao tentar aceder ao feedback de outra (não só por teste automático).
+
 Ver `docs/requirements-matrix.md` para o detalhe módulo a módulo do
 enunciado original.
 
@@ -63,10 +83,10 @@ correr em produção. Ver README.md para as credenciais.
 
 ```
 php artisan test
-→ 78 testes, 240 assertions, todos a passar (última execução nesta sessão)
+→ 85 testes, 279 assertions, todos a passar (última execução nesta sessão)
 ```
 
-24 ficheiros de teste, cobrindo:
+26 ficheiros de teste, cobrindo:
 
 - **Isolamento**: uma terapeuta não atribuída não vê o perfil/avaliação de
   uma criança; uma criança não acede a tentativas/feedback doutra criança
@@ -85,22 +105,29 @@ php artisan test
   bloqueio (lógica testada na unidade do serviço, ver
   `DeviceAuthService`); desbloqueio sem o código original de ativação
   funciona via API.
-- **Auditoria**: login de equipa, desativar/reativar conta, e
-  emitir/revogar acesso de dispositivo escrevem mesmo um `audit_events`.
+- **Auditoria**: login de equipa (incluindo com MFA), desativar/reativar
+  conta, e emitir/revogar acesso de dispositivo escrevem mesmo um
+  `audit_events` — e, mais importante depois do bug encontrado nesta
+  ronda, o **campo real** (`disabled_at`, `mfa_enabled`, `cancelled_at`,
+  `revoked_at`) muda mesmo na base de dados, não só o evento.
+- **Editor de atividades**: criar/editar via HTTP, incluindo que editar
+  uma atividade já atribuída bifurca uma nova versão e que uma terapeuta
+  sem ligação à atividade não a pode editar.
+- **MFA**: percurso completo — pedir configuração, código errado
+  rejeitado, código certo ativa, login passa a exigir o desafio, desafio
+  aceita o código certo e autentica, desativar volta a permitir login
+  direto.
 - Testes Breeze originais mantidos (autenticação, verificação de email,
   atualização de password/perfil).
 
 ### O que não foi testado automaticamente
 
-- Editor de atividades (`Activities/Edit.tsx`) — sem teste de feature para
-  o fluxo de criação/edição via HTTP, só a `ActivityVersioningService`
-  subjacente (a pré-visualização e a duplicação, adicionadas nesta ronda,
-  têm teste próprio).
-- MFA — o fluxo de configuração (`MfaSettingsController`) não tem teste de
-  feature completo (ativar com código real), só a verificação de que o
-  evento de auditoria é escrito no login.
 - Categorias/áreas de atividade e limites de upload continuam texto
   livre/fixos no código — não há UI de configuração para testar.
+- Não foi feita uma segunda auditoria de `->update()`/`::create()` para
+  garantir que nenhum novo campo ficou de fora de `$fillable` desde esta
+  correção — vale a pena repetir sempre que um campo novo for adicionado
+  a um modelo existente.
 
 ## Browsers e dispositivos realmente testados
 
