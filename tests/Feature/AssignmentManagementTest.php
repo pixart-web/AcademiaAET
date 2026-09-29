@@ -80,6 +80,7 @@ class AssignmentManagementTest extends TestCase
         $this->actingAs($pro)->delete(route('assignments.cancel', $assignment))->assertRedirect();
 
         $this->assertSame('cancelled', $assignment->fresh()->status->value);
+        $this->assertNotNull($assignment->fresh()->cancelled_at);
     }
 
     public function test_revoked_device_association_can_no_longer_activate(): void
@@ -107,6 +108,8 @@ class AssignmentManagementTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame('revoked', $device->fresh()->status);
+        $this->assertNotNull($device->fresh()->revoked_at);
+        $this->assertSame($pro->id, $device->fresh()->revoked_by_user_id);
 
         $this->post('/crianca/entrar/ativar', ['device_code' => 'REVOKEME1', 'pin' => '4242'])
             ->assertSessionHasErrors('pin');

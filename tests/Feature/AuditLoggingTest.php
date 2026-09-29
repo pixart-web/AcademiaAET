@@ -39,9 +39,13 @@ class AuditLoggingTest extends TestCase
 
         $this->actingAs($admin)->delete(route('staff.destroy', $target));
         $this->assertDatabaseHas('audit_events', ['action' => 'staff.disabled', 'auditable_id' => $target->id]);
+        // The audit trail existing is not the same as the account actually
+        // being disabled — assert the real state, not just the side effect.
+        $this->assertNotNull($target->fresh()->disabled_at);
 
         $this->actingAs($admin)->patch(route('staff.reactivate', $target));
         $this->assertDatabaseHas('audit_events', ['action' => 'staff.reactivated', 'auditable_id' => $target->id]);
+        $this->assertNull($target->fresh()->disabled_at);
     }
 
     public function test_device_issuance_and_revocation_are_audited(): void

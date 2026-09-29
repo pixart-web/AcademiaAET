@@ -6,6 +6,21 @@ sem teste automático nem verificação manual direta) · **Parcial** ·
 **Em falta** · **Opcional/fora desta etapa** (combinado explicitamente no
 master prompt).
 
+> **Nota sobre uma classe de bug encontrada nesta ronda**: vários campos
+> (`User.disabled_at`, `User.mfa_enabled`/`mfa_secret`,
+> `Assignment.cancelled_at`, `DeviceAssociation.revoked_at`/
+> `revoked_by_user_id`) tinham a coluna na base de dados e o código a
+> chamar `->update([...])` com esse campo, mas **faltavam na lista
+> `$fillable` do modelo** — o Laravel descarta silenciosamente atributos
+> em mass-assignment que não estão listados, sem erro nenhum. O botão
+> "funcionava" (redirecionava, mostrava sucesso) mas o valor nunca mudava
+> na base de dados. Nenhum destes tinha um teste que verificasse o valor
+> real do campo (só o redirecionamento ou, nalguns casos, o evento de
+> auditoria) — por isso passavam. Corrigido em todos os casos encontrados;
+> os testes foram reforçados para verificar o estado real, não só o
+> efeito colateral. Isto foi encontrado ao escrever testes novos para MFA
+> que falharam à primeira tentativa, não por revisão de código.
+
 ## Módulo A — Autenticação e contas
 
 | Requisito | Estado | Nota |
@@ -13,8 +28,8 @@ master prompt).
 | Login/logout equipa | Implementado e verificado | `AuthenticatedSessionController`, testado |
 | Recuperação de acesso | Implementado, por verificar | Rotas Breeze padrão (`password.request`/`reset`); sem teste próprio escrito nesta fase (os testes originais do Breeze para isto foram mantidos) |
 | Convites (sem registo público) | Implementado e verificado | `UserInvitationService`; registo público removido propositadamente |
-| Ativação/desativação de contas | Implementado e verificado | `UserController@destroy/reactivate`, `EnsureAccountIsActive` |
-| MFA para contas profissionais | Implementado e verificado | TOTP, QR gerado no servidor (nunca enviado a terceiros); ligado à navegação em `Profile/Edit` |
+| Ativação/desativação de contas | Implementado e verificado | `UserController@destroy/reactivate`, `EnsureAccountIsActive`. **Bug crítico corrigido nesta ronda**: `User::$fillable` não incluía `disabled_at` — o botão "Desativar" não fazia nada de facto (só o evento de auditoria era escrito); confirmado com teste que falhava antes da correção e ao vivo no browser |
+| MFA para contas profissionais | Implementado e verificado | TOTP, QR gerado no servidor (nunca enviado a terceiros); ligado à navegação em `Profile/Edit`. **Mesmo bug crítico**: `mfa_enabled`/`mfa_secret` também não estavam em `$fillable` — ativar/desativar MFA não persistia; corrigido e agora com teste de percurso completo (ativar → login pede código → código errado no login geral falha → código certo entra) |
 | Gestão/revogação de sessões | Implementado e verificado | "Sessões ativas" em Perfil → lista por conta (nunca doutra conta, testado), termina qualquer sessão exceto a atual |
 | Sem credenciais fixas em produção | Implementado e verificado | `DemoDataSeeder` recusa-se a correr fora de local/testing sem `APP_ALLOW_DEMO_SEEDING=true` |
 
@@ -75,7 +90,7 @@ contagem no texto do relatório, confirmado e corrigido aqui.
 | Atribuir com instruções/prazo/tentativas | Implementado e verificado | Formulário em `Children/Show.tsx`, ligado ao backend (corrigido nesta etapa — antes só existia a rota, sem UI) |
 | Estados claros (atribuída/iniciada/submetida/revista/cancelada) | Implementado e verificado | |
 | Indicação de atraso | Implementado e verificado | Badge "Atrasada" no Painel e no perfil da criança, derivado de `Assignment::isOverdue()`, testado |
-| Cancelamento | Implementado e verificado | Testado |
+| Cancelamento | Implementado e verificado | Testado. Mesma família de bug: `cancelled_at` não estava em `Assignment::$fillable` — o estado mudava para "cancelada" mas a data nunca era gravada; corrigido |
 
 ## Módulo G — Execução infantil
 

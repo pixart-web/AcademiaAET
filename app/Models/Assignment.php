@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'child_profile_id', 'activity_version_id', 'assigned_by_user_id',
-    'instructions_override', 'due_at', 'max_attempts', 'status',
+    'instructions_override', 'due_at', 'max_attempts', 'status', 'cancelled_at',
 ])]
 class Assignment extends Model
 {
