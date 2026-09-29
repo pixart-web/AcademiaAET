@@ -19,8 +19,27 @@ escolhas) → **consultar feedback** do lado da criança (estado neutro
 enquanto não avaliado, mensagem honesta quando não há feedback escrito,
 nunca inventado).
 
+Desde o checkpoint anterior, numa segunda ronda de trabalho não-stop
+(mesma sessão, commits `9d6350d`…`03aa2d7`): pré-visualização de uma
+atividade nos três layouts infantis, duplicar atividade, indicador de
+atraso visível, registo de consentimentos (grant/revoke), exportação e
+eliminação permanente de dados de uma criança (com cascata e limpeza de
+ficheiros verificadas por teste), lista de sessões ativas com revogação,
+resumo numérico no perfil da criança, e cobertura de auditoria alargada.
+Também se corrigiu um **bug crítico real**: `MediaAssetPolicy` não tinha
+`viewAny()`, pelo que a biblioteca de conteúdos devolvia 403 a todos os
+utilizadores — só descoberto ao carregar mesmo a página no browser, não
+por leitura de código, o que motivou escrever também o primeiro teste de
+feature para esse controller (não existia nenhum).
+
 Ver `docs/requirements-matrix.md` para o detalhe módulo a módulo do
 enunciado original.
+
+## Repositório
+
+`https://github.com/pixart-web/AcademiaAET`, branch `main`. Histórico
+coerente por etapa (ver `git log`); sem segredos nem dados reais
+commitados (`.env` no `.gitignore`, só `.env.example` versionado).
 
 ## Como iniciar o ambiente
 
@@ -44,10 +63,10 @@ correr em produção. Ver README.md para as credenciais.
 
 ```
 php artisan test
-→ 57 testes, 169 assertions, todos a passar (última execução nesta sessão)
+→ 78 testes, 240 assertions, todos a passar (última execução nesta sessão)
 ```
 
-16 ficheiros de teste, cobrindo:
+24 ficheiros de teste, cobrindo:
 
 - **Isolamento**: uma terapeuta não atribuída não vê o perfil/avaliação de
   uma criança; uma criança não acede a tentativas/feedback doutra criança
@@ -75,11 +94,13 @@ php artisan test
 
 - Editor de atividades (`Activities/Edit.tsx`) — sem teste de feature para
   o fluxo de criação/edição via HTTP, só a `ActivityVersioningService`
-  subjacente.
-- Biblioteca de conteúdos (upload de media) — sem teste de feature; a
-  validação de mime real foi verificada manualmente.
+  subjacente (a pré-visualização e a duplicação, adicionadas nesta ronda,
+  têm teste próprio).
 - MFA — o fluxo de configuração (`MfaSettingsController`) não tem teste de
-  feature, só a verificação de que o evento de auditoria é escrito.
+  feature completo (ativar com código real), só a verificação de que o
+  evento de auditoria é escrito no login.
+- Categorias/áreas de atividade e limites de upload continuam texto
+  livre/fixos no código — não há UI de configuração para testar.
 
 ## Browsers e dispositivos realmente testados
 
