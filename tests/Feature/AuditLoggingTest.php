@@ -91,6 +91,79 @@ class AuditLoggingTest extends TestCase
         $this->assertDatabaseHas('audit_events', ['action' => 'activity.archived', 'auditable_id' => $activity->id]);
     }
 
+    /**
+     * Regression: child profile edits and activity content edits were the
+     * two gaps explicitly called out in docs/requirements-matrix.md as
+     * "ainda não coberto" by the audit trail (only publish/archive/delete
+     * were). Neither log the actual clinical text or activity content —
+     * only that an edit happened, by whom, and (for activities) whether it
+     * forked a new version.
+     */
+    public function test_child_profile_edit_is_audited_without_leaking_care_notes(): void
+    {
+        $org = Organization::factory()->create();
+        $admin = User::factory()->admin()->for($org)->create();
+        $child = ChildProfile::factory()->for($org)->create(['care_notes' => 'Nota antiga']);
+
+        $this->actingAs($admin)->put(route('children.update', $child), [
+            'first_name' => $child->first_name,
+            'birth_date' => $child->birth_date->format('Y-m-d'),
+            'status' => $child->status->value,
+            'visual_experience' => $child->visual_experience->value,
+            'care_notes' => 'Nota nova',
+        ]);
+
+        $event = AuditEvent::where('action', 'child.profile_updated')->first();
+        $this->assertNotNull($event);
+        $this->assertSame($child->id, $event->auditable_id);
+        $this->assertTrue($event->metadata['care_notes_changed']);
+        $this->assertStringNotContainsString('Nota nova', json_encode($event->metadata));
+        $this->assertStringNotContainsString('Nota antiga', json_encode($event->metadata));
+    }
+
+    public function test_activity_content_edit_is_audited_and_flags_version_fork(): void
+    {
+        $org = Organization::factory()->create();
+        $pro = User::factory()->for($org)->create();
+        $activity = Activity::factory()->for($org)->create(['created_by_user_id' => $pro->id]);
+        $versioning = app(ActivityVersioningService::class);
+        $versioning->createInitialVersion($activity, $pro, 'Atividade', null, null, [
+            ['response_type' => ResponseType::ShortText->value],
+        ]);
+
+        // Editing an unassigned draft updates in place — no fork.
+        $this->actingAs($pro)->put(route('activities.update', $activity), [
+            'title' => 'Atividade editada',
+            'category' => null,
+            'area' => null,
+            'difficulty' => null,
+            'instructions' => null,
+            'evaluation_criteria' => null,
+            'steps' => [['response_type' => ResponseType::ShortText->value]],
+        ]);
+
+        $event = AuditEvent::where('action', 'activity.content_updated')->first();
+        $this->assertNotNull($event);
+        $this->assertSame($activity->id, $event->auditable_id);
+        $this->assertFalse($event->metadata['forked_new_version']);
+
+        // Publish, then edit again — this time it must fork.
+        $this->actingAs($pro)->post(route('activities.publish', $activity));
+
+        $this->actingAs($pro)->put(route('activities.update', $activity), [
+            'title' => 'Atividade editada outra vez',
+            'category' => null,
+            'area' => null,
+            'difficulty' => null,
+            'instructions' => null,
+            'evaluation_criteria' => null,
+            'steps' => [['response_type' => ResponseType::ShortText->value]],
+        ]);
+
+        $forkEvent = AuditEvent::where('action', 'activity.content_updated')->latest('id')->first();
+        $this->assertTrue($forkEvent->metadata['forked_new_version']);
+    }
+
     public function test_professional_assignment_and_guardian_association_are_audited(): void
     {
         $org = Organization::factory()->create();

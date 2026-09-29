@@ -52,8 +52,24 @@ na experiência de **14–18 anos**, que só tinha sido verificada
 parcialmente antes — incluindo confirmar ao vivo que uma criança recebe
 403 ao tentar aceder ao feedback de outra (não só por teste automático).
 
-Ver `docs/requirements-matrix.md` para o detalhe módulo a módulo do
-enunciado original.
+Numa quarta ronda (commits `c27fd06`…atual): confirmado que a recuperação
+de acesso (Breeze) já estava coberta por teste — só mal classificada na
+matriz. Limites de upload deixaram de estar fixos no código, agora vêm de
+`config/media.php` (`MEDIA_MAX_*_KB`). A auditoria passou a cobrir também
+a edição de perfil de criança e a edição de conteúdo de atividade (as duas
+lacunas explícitas apontadas na ronda anterior), e ganhou uma página de
+consulta própria (`/audit`, só para administradores, com filtro e
+paginação) em vez de só existir na base de dados — confirmado ao vivo no
+browser: uma terapeuta recebe 403, um admin só vê eventos da própria
+organização, e uma edição real aparece na lista de imediato sem expor o
+texto da nota clínica alterada. **Decisão deliberada de não avançar**: uma
+regra automática de retenção de dados por prazo não foi implementada,
+mesmo como mecanismo desligado por omissão — ao contrário do limite de
+upload, aqui o próprio prazo é uma decisão clínica ainda por tomar, e
+construir agora um apagamento automático (ainda que configurável) numa
+aplicação que guarda notas clínicas de crianças é um risco real se alguém
+o ativar sem essa decisão estar fechada. Ver `docs/requirements-matrix.md`
+para o detalhe módulo a módulo do enunciado original.
 
 ## Repositório
 
@@ -83,7 +99,7 @@ correr em produção. Ver README.md para as credenciais.
 
 ```
 php artisan test
-→ 88 testes, 293 assertions, todos a passar (última execução nesta sessão)
+→ 94 testes, 333 assertions, todos a passar (última execução nesta sessão)
 ```
 
 26 ficheiros de teste, cobrindo:

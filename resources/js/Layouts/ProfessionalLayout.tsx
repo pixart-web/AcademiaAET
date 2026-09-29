@@ -9,6 +9,7 @@ const NAV = [
     { href: 'evaluations.index', label: 'Por avaliar' },
     { href: 'media.index', label: 'Conteúdos' },
     { href: 'staff.index', label: 'Equipa', adminOnly: true },
+    { href: 'audit.index', label: 'Auditoria', adminOnly: true },
 ];
 
 const ROLE_LABEL: Record<string, string> = {

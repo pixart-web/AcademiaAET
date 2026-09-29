@@ -83,6 +83,8 @@ class ActivityController extends Controller
 
         $data = $this->validateActivity($request);
 
+        $previousVersionId = $activity->current_version_id;
+
         $activity->update([
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
@@ -91,7 +93,7 @@ class ActivityController extends Controller
             'difficulty' => $data['difficulty'] ?? null,
         ]);
 
-        $versioning->updateOrFork(
+        $newVersion = $versioning->updateOrFork(
             $activity->currentVersion,
             $request->user(),
             $data['title'],
@@ -99,6 +101,11 @@ class ActivityController extends Controller
             $data['evaluation_criteria'] ?? null,
             $data['steps'],
         );
+
+        AuditLogger::log('activity.content_updated', $activity, [
+            'forked_new_version' => $activity->fresh()->current_version_id !== $previousVersionId,
+            'version_id' => $newVersion->id,
+        ]);
 
         return redirect()->route('activities.edit', $activity)->with('status', 'Atividade guardada.');
     }

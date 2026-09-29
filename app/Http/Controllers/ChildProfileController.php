@@ -129,7 +129,13 @@ class ChildProfileController extends Controller
             Carbon::parse($data['birth_date'])->age
         )->value;
 
+        $careNotesChanged = $child->care_notes !== ($data['care_notes'] ?? null);
+
         $child->update([...$data, 'visual_experience_overridden' => $overridden]);
+
+        // Never logs the note text itself — clinical content stays out of the
+        // audit trail, only that an edit touching it happened, and when.
+        AuditLogger::log('child.profile_updated', $child, ['care_notes_changed' => $careNotesChanged]);
 
         return redirect()->route('children.show', $child)->with('status', 'Perfil atualizado.');
     }

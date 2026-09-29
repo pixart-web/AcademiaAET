@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\AttemptController;
+use App\Http\Controllers\AuditEventController;
 use App\Http\Controllers\Auth\ChildSessionController;
 use App\Http\Controllers\ChildFeedbackController;
 use App\Http\Controllers\ChildHomeController;
@@ -72,6 +73,8 @@ Route::middleware(['auth', 'role:admin,professional'])->group(function () {
     Route::get('evaluations', [EvaluationController::class, 'index'])->name('evaluations.index');
     Route::get('evaluations/{attempt}', [EvaluationController::class, 'show'])->name('evaluations.show');
     Route::post('evaluations/{attempt}', [EvaluationController::class, 'store'])->name('evaluations.store');
+
+    Route::get('audit', [AuditEventController::class, 'index'])->name('audit.index');
 });
 
 Route::middleware(['auth'])->group(function () {
