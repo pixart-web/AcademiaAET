@@ -16,9 +16,11 @@ class DeviceAssociation extends Model
     {
         return [
             'expires_at' => 'datetime',
+            'session_expires_at' => 'datetime',
             'locked_until' => 'datetime',
             'last_used_at' => 'datetime',
             'revoked_at' => 'datetime',
+            'activated_at' => 'datetime',
         ];
     }
 
@@ -37,13 +39,43 @@ class DeviceAssociation extends Model
         return $this->belongsTo(User::class, 'revoked_by_user_id');
     }
 
-    public function isUsable(): bool
+    /**
+     * Gates the one-time activation code + PIN, before the device is
+     * paired — never used once `activated_at` is set, which is exactly
+     * what makes activation one-time-use: a second activate() call with
+     * the same code always fails here, regardless of whether the code or
+     * PIN themselves are still "correct".
+     */
+    public function isActivationUsable(): bool
     {
-        if ($this->status !== 'active') {
+        if ($this->status !== 'active' || $this->activated_at !== null) {
             return false;
         }
 
         if ($this->expires_at->isPast()) {
+            return false;
+        }
+
+        if ($this->locked_until && $this->locked_until->isFuture()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Gates day-to-day PIN unlock on an already-paired device — a wholly
+     * separate clock from the activation code's own short deadline (see
+     * migration 2026_09_30_202909), so a device in daily use doesn't stop
+     * working the moment the original activation code would have expired.
+     */
+    public function isSessionUsable(): bool
+    {
+        if ($this->status !== 'active' || $this->activated_at === null) {
+            return false;
+        }
+
+        if ($this->session_expires_at !== null && $this->session_expires_at->isPast()) {
             return false;
         }
 

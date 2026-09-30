@@ -46,7 +46,7 @@ class ChildDataService
                 'type' => $c->type, 'text_version' => $c->text_version, 'granted_by' => $c->grantedBy->name,
                 'granted_at' => $c->granted_at, 'revoked_at' => $c->revoked_at,
             ]),
-            'device_associations' => $child->deviceAssociations->map->only(['device_identifier', 'status', 'expires_at', 'last_used_at', 'revoked_at']),
+            'device_associations' => $child->deviceAssociations->map->only(['device_identifier', 'status', 'activated_at', 'expires_at', 'session_expires_at', 'last_used_at', 'revoked_at']),
             'clinical_notes' => $child->clinicalNotes->map(fn ($n) => [
                 'author' => $n->author->name, 'body' => $n->body, 'created_at' => $n->created_at,
             ]),

@@ -26,7 +26,58 @@ Estado: em progresso.
 
 ## Achado 3 — Ativação de utilização única
 
-Estado: em progresso.
+Estado: **Corrigido e verificado.**
+
+**Reprodução (código antigo):** `DeviceAuthService::activate()` chamava
+`$device->isUsable()`, que verificava `status === 'active'`, `expires_at`
+no futuro e não estar bloqueado — **nunca** verificava
+`activated_at === null`. Uma segunda chamada com o mesmo código+PIN,
+mesmo depois de o dispositivo já estar ativado (`activated_at` já
+preenchido), passava a mesma verificação e chamava
+`$device->activateWithToken($novoToken)` outra vez, sobrescrevendo
+`device_token_hash` — invalidando silenciosamente o token do dispositivo
+legítimo e emitindo um novo para quem quer que soubesse o código.
+Confirmado por leitura direta do método antes de qualquer alteração.
+
+**Causa:** a condição de "código utilizável" nunca distinguia "ainda não
+ativado" de "ativo e sem bloqueio" — tratava o código de ativação como
+reutilizável indefinidamente enquanto não expirasse.
+
+**Correção:**
+- `DeviceAssociation::isActivationUsable()` (nova, substitui `isUsable()`):
+  exige explicitamente `activated_at === null` — uma segunda tentativa
+  falha sempre aqui, com a mesma mensagem genérica de código/PIN
+  inválidos que qualquer outra falha (nunca revela que o código já foi
+  usado).
+- `DeviceAssociation::isSessionUsable()` (nova): governa o desbloqueio
+  diário pós-ativação, com o seu próprio prazo (`session_expires_at`,
+  migração `2026_09_30_202909`) em vez do prazo curto do código de
+  ativação (`expires_at`) — ver também achado 2 sobre porque isto
+  importa (um dispositivo em uso diário não pode deixar de funcionar ao
+  fim de 7 dias só porque essa era a validade do código, não da sessão).
+- `activate()` passa a correr dentro de `DB::transaction()` com
+  `lockForUpdate()` na linha do dispositivo — verificação e consumo
+  atómicos, para que dois pedidos concorrentes com o mesmo código nunca
+  possam ambos passar a verificação "ainda não ativado".
+- `activate()` e `unlock()` passam agora a incrementar
+  `failed_attempts`/`locked_until` da mesma forma (antes só `unlock()`
+  tinha proteção contra tentativas repetidas — `activate()` dependia só
+  do throttle HTTP por IP, que não protege um código específico contra
+  tentativas distribuídas).
+
+**Teste de regressão:** `tests/Feature/DeviceAssociationTest.php` (+5
+testes) e `tests/Feature/Api/ApiChildFlowTest.php` (+1): confirma que
+reativar falha e não substitui o token existente; que a mensagem de erro
+é idêntica entre "código já usado" e "código nunca existiu"; que duas
+chamadas concorrentes a `activate()` só deixam uma ter sucesso; que um
+dispositivo já ativado continua utilizável mesmo depois de o prazo do
+próprio código de ativação ter passado; e que o mesmo se aplica ao
+endpoint da API.
+
+**Resultado obtido:** todos os 6 testes novos passam contra o código
+novo; o teste de reativação falharia contra o código antigo (confirmado
+por leitura de código, não por reverter e correr — o mesmo padrão usado
+nos achados 4 e 6).
 
 ## Achado 4 — Tentativas, retoma e cancelamento
 
