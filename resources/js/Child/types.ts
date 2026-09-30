@@ -15,10 +15,14 @@ export interface Step {
     title: string | null;
     body: string | null;
     response_type: ResponseType;
-    response_config: { options?: string[]; correct?: string } | null;
+    // Never carries `correct` — the server strips it before it reaches a
+    // child (see ActivityStep::childSafeResponseConfig()).
+    response_config: { options?: string[]; required?: boolean; max_length?: number } | null;
+    required: boolean;
     instruction_media_url: string | null;
     answered: boolean;
     value: unknown;
+    response_media_url: string | null;
 }
 
 export interface AssignmentSummary {

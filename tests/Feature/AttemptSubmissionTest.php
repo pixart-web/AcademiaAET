@@ -45,6 +45,11 @@ class AttemptSubmissionTest extends TestCase
 
         $this->actingAs($child, 'child')->post("/crianca/atribuicoes/{$assignment->id}/iniciar");
         $attempt = Attempt::where('assignment_id', $assignment->id)->firstOrFail();
+        $step = $attempt->assignment->activityVersion->steps()->firstOrFail();
+
+        $this->actingAs($child, 'child')
+            ->post("/crianca/tentativas/{$attempt->id}/passos/{$step->id}", ['value' => true])
+            ->assertRedirect();
 
         $this->actingAs($child, 'child')->post("/crianca/tentativas/{$attempt->id}/submeter")->assertRedirect();
         $this->actingAs($child, 'child')->post("/crianca/tentativas/{$attempt->id}/submeter")->assertRedirect();

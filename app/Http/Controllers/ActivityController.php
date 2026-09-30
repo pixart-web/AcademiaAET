@@ -237,6 +237,14 @@ class ActivityController extends Controller
             'steps.*.instruction_media_asset_id' => ['nullable', 'exists:media_assets,id'],
             'steps.*.response_type' => ['required', Rule::in(array_column(ResponseType::cases(), 'value'))],
             'steps.*.response_config' => ['nullable', 'array'],
+            'steps.*.response_config.required' => ['sometimes', 'boolean'],
+            'steps.*.response_config.options' => ['sometimes', 'array'],
+            'steps.*.response_config.options.*' => ['string', 'max:255'],
+            // Single choice stores a string, multiple choice an array —
+            // both are accepted here and normalized by ActivityStep at read
+            // time (see ActivityStep::correctAnswers()).
+            'steps.*.response_config.correct' => ['sometimes'],
+            'steps.*.response_config.correct.*' => ['string', 'max:255'],
         ]);
     }
 

@@ -2,11 +2,17 @@ import ProfessionalLayout from '@/Layouts/ProfessionalLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
+interface ResponseConfig {
+    options?: string[];
+    correct?: string | string[];
+    required?: boolean;
+}
+
 interface StepForm {
     title: string;
     body: string;
     response_type: string;
-    response_config: { options?: string[]; correct?: string };
+    response_config: ResponseConfig;
 }
 
 interface ActivityData {
@@ -24,7 +30,7 @@ interface ActivityData {
             title: string | null;
             body: string | null;
             response_type: string;
-            response_config: { options?: string[]; correct?: string } | null;
+            response_config: ResponseConfig | null;
         }[];
     };
 }
@@ -39,7 +45,7 @@ const RESPONSE_TYPE_LABEL: Record<string, string> = {
     completion_confirmation: 'Confirmação de realização',
 };
 
-const emptyStep = (): StepForm => ({ title: '', body: '', response_type: 'single_choice', response_config: { options: ['', ''] } });
+const emptyStep = (): StepForm => ({ title: '', body: '', response_type: 'single_choice', response_config: { options: ['', ''], required: true } });
 
 export default function Edit({ activity, responseTypes }: { activity: ActivityData | null; responseTypes: { value: string; label: string }[] }) {
     const version = activity?.current_version;
@@ -56,7 +62,7 @@ export default function Edit({ activity, responseTypes }: { activity: ActivityDa
             title: s.title ?? '',
             body: s.body ?? '',
             response_type: s.response_type,
-            response_config: s.response_config ?? {},
+            response_config: { required: true, ...(s.response_config ?? {}) },
         })) ?? [emptyStep()]) as StepForm[],
     });
 
@@ -229,33 +235,60 @@ export default function Edit({ activity, responseTypes }: { activity: ActivityDa
                                 />
                             </div>
 
+                            <label className="mt-3 flex items-center gap-2 text-sm text-ink-muted">
+                                <input
+                                    type="checkbox"
+                                    checked={step.response_config.required ?? true}
+                                    onChange={(e) => updateStep(index, { response_config: { ...step.response_config, required: e.target.checked } })}
+                                />
+                                Obrigatório para submeter
+                            </label>
+
                             {(step.response_type === 'single_choice' || step.response_type === 'multiple_choice') && (
                                 <div className="mt-3 space-y-2">
-                                    <p className="text-sm text-ink-muted">Opções (defina a correta apenas para escolha única)</p>
-                                    {(step.response_config.options ?? []).map((option, optIndex) => (
-                                        <div key={optIndex} className="flex items-center gap-2">
-                                            <input
-                                                value={option}
-                                                onChange={(e) => {
-                                                    const options = [...(step.response_config.options ?? [])];
-                                                    options[optIndex] = e.target.value;
-                                                    updateStep(index, { response_config: { ...step.response_config, options } });
-                                                }}
-                                                className="flex-1 rounded-shell border-border focus:border-accent focus:ring-accent"
-                                            />
-                                            {step.response_type === 'single_choice' && (
+                                    <p className="text-sm text-ink-muted">
+                                        Opções {step.response_type === 'single_choice' ? '(marque a correta)' : '(marque todas as corretas)'}
+                                    </p>
+                                    {(step.response_config.options ?? []).map((option, optIndex) => {
+                                        const correctList = Array.isArray(step.response_config.correct)
+                                            ? step.response_config.correct
+                                            : step.response_config.correct
+                                              ? [step.response_config.correct]
+                                              : [];
+                                        const isCorrect = correctList.includes(option);
+
+                                        const toggleCorrect = () => {
+                                            if (step.response_type === 'single_choice') {
+                                                updateStep(index, { response_config: { ...step.response_config, correct: option } });
+                                                return;
+                                            }
+                                            const next = isCorrect ? correctList.filter((o) => o !== option) : [...correctList, option];
+                                            updateStep(index, { response_config: { ...step.response_config, correct: next } });
+                                        };
+
+                                        return (
+                                            <div key={optIndex} className="flex items-center gap-2">
+                                                <input
+                                                    value={option}
+                                                    onChange={(e) => {
+                                                        const options = [...(step.response_config.options ?? [])];
+                                                        options[optIndex] = e.target.value;
+                                                        updateStep(index, { response_config: { ...step.response_config, options } });
+                                                    }}
+                                                    className="flex-1 rounded-shell border-border focus:border-accent focus:ring-accent"
+                                                />
                                                 <label className="flex items-center gap-1 text-sm text-ink-muted">
                                                     <input
-                                                        type="radio"
+                                                        type={step.response_type === 'single_choice' ? 'radio' : 'checkbox'}
                                                         name={`correct-${index}`}
-                                                        checked={step.response_config.correct === option}
-                                                        onChange={() => updateStep(index, { response_config: { ...step.response_config, correct: option } })}
+                                                        checked={isCorrect}
+                                                        onChange={toggleCorrect}
                                                     />
                                                     correta
                                                 </label>
-                                            )}
-                                        </div>
-                                    ))}
+                                            </div>
+                                        );
+                                    })}
                                     <button
                                         type="button"
                                         onClick={() => updateStep(index, {

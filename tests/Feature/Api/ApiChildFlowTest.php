@@ -102,9 +102,15 @@ class ApiChildFlowTest extends TestCase
         ])->json('token');
         $auth = ['Authorization' => "Bearer {$token}"];
 
-        $attemptId = $this->withHeaders($auth)
+        $start = $this->withHeaders($auth)
             ->postJson("/api/v1/child/assignments/{$assignment->id}/start")
-            ->json('attempt.id');
+            ->json();
+        $attemptId = $start['attempt']['id'];
+        $stepId = $start['steps'][0]['id'];
+
+        $this->withHeaders($auth)
+            ->postJson("/api/v1/child/attempts/{$attemptId}/steps/{$stepId}", ['value' => true])
+            ->assertOk();
 
         $this->withHeaders($auth)->postJson("/api/v1/child/attempts/{$attemptId}/submit")->assertOk();
         $this->withHeaders($auth)->postJson("/api/v1/child/attempts/{$attemptId}/submit")->assertOk();

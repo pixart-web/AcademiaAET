@@ -32,24 +32,40 @@ class AttemptService
         'video_recording' => ['video/webm', 'video/mp4'],
     ];
 
-    public function __construct(private readonly RewardService $rewards) {}
+    public function __construct(
+        private readonly RewardService $rewards,
+        private readonly StepResponseValidator $validator,
+    ) {}
 
+    /**
+     * Resuming an in-progress attempt is always allowed, regardless of
+     * max_attempts — the limit only gates *creating a new* attempt. Checking
+     * for an in-progress attempt happens first and inside the same locked
+     * transaction as the creation, so two concurrent requests can never both
+     * decide "no attempt exists yet" and both create one (the DB's partial
+     * unique index on attempts(assignment_id) WHERE status='in_progress' is
+     * the second line of defense if that locking is ever bypassed).
+     */
     public function startOrResume(Assignment $assignment): Attempt
     {
-        abort_unless($assignment->hasAttemptsRemaining(), 422, 'Sem mais tentativas disponíveis.');
-        abort_if($assignment->status === AssignmentStatus::Cancelled, 422);
-
-        $attempt = $assignment->attempts()->where('status', 'in_progress')->first();
-
-        if ($attempt) {
-            return $attempt;
-        }
+        abort_if($assignment->status === AssignmentStatus::Cancelled, 422, 'Esta atribuição foi cancelada.');
 
         return DB::transaction(function () use ($assignment) {
-            $assignment->update(['status' => AssignmentStatus::Started]);
+            $locked = Assignment::query()->whereKey($assignment->id)->lockForUpdate()->firstOrFail();
 
-            return $assignment->attempts()->create([
-                'attempt_number' => $assignment->nextAttemptNumber(),
+            abort_if($locked->status === AssignmentStatus::Cancelled, 422, 'Esta atribuição foi cancelada.');
+
+            $attempt = $locked->attempts()->where('status', 'in_progress')->first();
+            if ($attempt) {
+                return $attempt;
+            }
+
+            abort_unless($locked->hasAttemptsRemaining(), 422, 'Sem mais tentativas disponíveis.');
+
+            $locked->update(['status' => AssignmentStatus::Started]);
+
+            return $locked->attempts()->create([
+                'attempt_number' => $locked->nextAttemptNumber(),
                 'status' => AttemptStatus::InProgress,
                 'started_at' => now(),
             ]);
@@ -72,12 +88,17 @@ class AttemptService
                 'title' => $step->title,
                 'body' => $step->body,
                 'response_type' => $step->response_type,
-                'response_config' => $step->response_config,
+                // Never the raw config — it may hold `correct`, the answer key.
+                'response_config' => $step->childSafeResponseConfig(),
+                'required' => $step->isRequired(),
                 'instruction_media_url' => $step->instructionMedia
                     ? URL::temporarySignedRoute('media.show', now()->addMinutes(15), ['media' => $step->instructionMedia->id])
                     : null,
                 'answered' => $response !== null,
                 'value' => $response?->value,
+                'response_media_url' => $response?->media_asset_id
+                    ? URL::temporarySignedRoute('media.show', now()->addMinutes(15), ['media' => $response->media_asset_id])
+                    : null,
             ];
         })->all();
     }
@@ -85,34 +106,67 @@ class AttemptService
     public function saveStep(Attempt $attempt, ActivityStep $step, ChildProfile $child, mixed $value, ?UploadedFile $file): StepResponse
     {
         abort_unless($attempt->status === AttemptStatus::InProgress, 422, 'Esta tentativa já foi submetida.');
+        abort_if($attempt->assignment->status === AssignmentStatus::Cancelled, 422, 'Esta atribuição foi cancelada.');
 
         $responseType = $step->response_type;
         $isFileResponse = $responseType->isRecording() || $responseType === ResponseType::Drawing;
-        $mediaAssetId = null;
 
         if ($isFileResponse) {
-            abort_unless($file !== null, 422, 'Ficheiro em falta.');
+            if ($file === null) {
+                $this->abortIfFileRequired($step);
+
+                return StepResponse::updateOrCreate(
+                    ['attempt_id' => $attempt->id, 'activity_step_id' => $step->id],
+                    ['value' => null, 'media_asset_id' => null, 'is_correct' => null, 'answered_at' => null],
+                );
+            }
+
             $mediaAssetId = $responseType === ResponseType::Drawing
                 ? $this->storeDrawing($file, $child)
                 : $this->storeRecording($file, $child, $responseType);
-            $value = null;
+
+            return StepResponse::updateOrCreate(
+                ['attempt_id' => $attempt->id, 'activity_step_id' => $step->id],
+                ['value' => null, 'media_asset_id' => $mediaAssetId, 'is_correct' => null, 'answered_at' => now()],
+            );
         }
 
-        $isCorrect = null;
-        if ($responseType->isAutoScorable()) {
-            $correct = $step->response_config['correct'] ?? null;
-            $isCorrect = $correct !== null && $value == $correct;
-        }
+        $result = $this->validator->validateValue($step, $value);
 
         return StepResponse::updateOrCreate(
             ['attempt_id' => $attempt->id, 'activity_step_id' => $step->id],
             [
-                'value' => $isFileResponse ? null : $value,
-                'media_asset_id' => $mediaAssetId,
-                'is_correct' => $isCorrect,
-                'answered_at' => now(),
+                'value' => $result['value'],
+                'media_asset_id' => null,
+                'is_correct' => $result['is_correct'],
+                'answered_at' => $result['value'] === null ? null : now(),
             ],
         );
+    }
+
+    private function abortIfFileRequired(ActivityStep $step): void
+    {
+        if ($step->isRequired()) {
+            throw ValidationException::withMessages(['file' => 'Ficheiro em falta.']);
+        }
+    }
+
+    private function assertAllRequiredStepsAnswered(Attempt $attempt): void
+    {
+        $attempt->loadMissing(['assignment.activityVersion.steps', 'stepResponses']);
+
+        $answeredStepIds = $attempt->stepResponses
+            ->filter(fn (StepResponse $r) => $r->answered_at !== null)
+            ->pluck('activity_step_id');
+
+        $missing = $attempt->assignment->activityVersion->steps
+            ->filter(fn (ActivityStep $step) => $step->isRequired() && ! $answeredStepIds->contains($step->id));
+
+        if ($missing->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'steps' => 'Ainda há passos obrigatórios por responder.',
+            ]);
+        }
     }
 
     public function submit(Attempt $attempt, ?string $submissionKey = null): Attempt
@@ -121,16 +175,40 @@ class AttemptService
             return $attempt;
         }
 
+        abort_if($attempt->assignment->status === AssignmentStatus::Cancelled, 422, 'Esta atribuição foi cancelada.');
+
         $key = $submissionKey ?: (string) $attempt->id;
 
-        DB::transaction(function () use ($attempt, $key) {
-            $attempt->update([
+        $alreadySubmitted = DB::transaction(function () use ($attempt, $key) {
+            // Re-check inside the lock: two concurrent submits of the same
+            // attempt must not both pass the InProgress check above and both
+            // try to transition it — the second one, after the first
+            // commits, sees Submitted already and becomes a no-op.
+            $locked = Attempt::query()->whereKey($attempt->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->status !== AttemptStatus::InProgress) {
+                return true;
+            }
+
+            if ($locked->assignment->status === AssignmentStatus::Cancelled) {
+                abort(422, 'Esta atribuição foi cancelada.');
+            }
+
+            $this->assertAllRequiredStepsAnswered($locked);
+
+            $locked->update([
                 'status' => AttemptStatus::Submitted,
                 'submitted_at' => now(),
                 'submission_key' => $key,
             ]);
-            $attempt->assignment->update(['status' => AssignmentStatus::Submitted]);
+            $locked->assignment->update(['status' => AssignmentStatus::Submitted]);
+
+            return false;
         });
+
+        if ($alreadySubmitted) {
+            return $attempt->fresh();
+        }
 
         $attempt = $attempt->fresh();
         $this->rewards->awardParticipation($attempt);

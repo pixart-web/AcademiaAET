@@ -45,7 +45,7 @@ class AttemptController extends Controller
         $isFileResponse = $activityStep->response_type->isRecording() || $activityStep->response_type->value === 'drawing';
 
         if ($isFileResponse) {
-            $request->validate(['file' => ['required', 'file', 'max:'.self::MAX_RECORDING_KB]]);
+            $request->validate(['file' => [$activityStep->isRequired() ? 'required' : 'nullable', 'file', 'max:'.self::MAX_RECORDING_KB]]);
         } else {
             $request->validate(['value' => ['nullable']]);
         }
