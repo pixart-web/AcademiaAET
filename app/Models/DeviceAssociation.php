@@ -112,4 +112,47 @@ class DeviceAssociation extends Model
         return $this->device_token_hash !== null
             && hash_equals($this->device_token_hash, hash('sha256', $deviceToken));
     }
+
+    /**
+     * AET-RC01 finding 2: the single place that decides whether a claimed
+     * device association still authorizes an already-authenticated child —
+     * used identically by the web session guard (EnsureChildDeviceIsActive),
+     * the API token guard (EnsureApiPrincipal) and MediaStreamController, so
+     * revoking or expiring one device is enforced on every surface the same
+     * way, not just the ones someone remembered to check. A missing or
+     * unresolvable $deviceAssociationId (a legacy session/token minted
+     * before this device binding existed) is always treated as invalid —
+     * never trusted by default.
+     */
+    /**
+     * Sanctum abilities are the only per-token metadata available without a
+     * schema change to personal_access_tokens — "device:42" is set once, at
+     * token creation (Api\ChildDeviceController), and never trusted for
+     * anything beyond finding which row to re-validate against the database.
+     */
+    public static function idFromTokenAbilities(array $abilities): ?int
+    {
+        foreach ($abilities as $ability) {
+            if (is_string($ability) && str_starts_with($ability, 'device:')) {
+                return (int) substr($ability, 7);
+            }
+        }
+
+        return null;
+    }
+
+    public static function resolveActiveFor(ChildProfile $child, ?int $deviceAssociationId): ?self
+    {
+        if ($deviceAssociationId === null) {
+            return null;
+        }
+
+        $device = static::find($deviceAssociationId);
+
+        if (! $device || $device->child_profile_id !== $child->id || ! $device->isSessionUsable()) {
+            return null;
+        }
+
+        return $device;
+    }
 }

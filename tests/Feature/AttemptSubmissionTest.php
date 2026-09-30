@@ -43,16 +43,16 @@ class AttemptSubmissionTest extends TestCase
         $assignment = $this->makeAssignment();
         $child = $assignment->childProfile;
 
-        $this->actingAs($child, 'child')->post("/crianca/atribuicoes/{$assignment->id}/iniciar");
+        $this->actingAsChild($child)->post("/crianca/atribuicoes/{$assignment->id}/iniciar");
         $attempt = Attempt::where('assignment_id', $assignment->id)->firstOrFail();
         $step = $attempt->assignment->activityVersion->steps()->firstOrFail();
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->post("/crianca/tentativas/{$attempt->id}/passos/{$step->id}", ['value' => true])
             ->assertRedirect();
 
-        $this->actingAs($child, 'child')->post("/crianca/tentativas/{$attempt->id}/submeter")->assertRedirect();
-        $this->actingAs($child, 'child')->post("/crianca/tentativas/{$attempt->id}/submeter")->assertRedirect();
+        $this->actingAsChild($child)->post("/crianca/tentativas/{$attempt->id}/submeter")->assertRedirect();
+        $this->actingAsChild($child)->post("/crianca/tentativas/{$attempt->id}/submeter")->assertRedirect();
 
         $this->assertSame(1, RewardEvent::where('attempt_id', $attempt->id)->count());
     }
@@ -60,11 +60,11 @@ class AttemptSubmissionTest extends TestCase
     public function test_a_child_cannot_access_another_childs_attempt(): void
     {
         $assignment = $this->makeAssignment();
-        $this->actingAs($assignment->childProfile, 'child')->post("/crianca/atribuicoes/{$assignment->id}/iniciar");
+        $this->actingAsChild($assignment->childProfile)->post("/crianca/atribuicoes/{$assignment->id}/iniciar");
         $attempt = Attempt::where('assignment_id', $assignment->id)->firstOrFail();
 
         $otherChild = ChildProfile::factory()->for($assignment->childProfile->organization)->create();
 
-        $this->actingAs($otherChild, 'child')->get("/crianca/tentativas/{$attempt->id}")->assertForbidden();
+        $this->actingAsChild($otherChild)->get("/crianca/tentativas/{$attempt->id}")->assertForbidden();
     }
 }

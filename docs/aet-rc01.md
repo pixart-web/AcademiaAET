@@ -22,7 +22,87 @@ Estado: em progresso.
 
 ## Achado 2 — Revogação e expiração de dispositivos
 
-Estado: em progresso.
+Estado: **Corrigido e verificado.**
+
+**Reprodução (código antigo):** `ChildSessionController::loginChild()`
+chamava `Auth::guard('child')->login($device->childProfile)` e nunca
+guardava, em lado nenhum, a que `DeviceAssociation` essa sessão
+pertencia. As rotas protegidas por `auth:child` (`ChildHomeController`,
+`AttemptController`, `ChildFeedbackController`) só verificavam se havia
+*um* perfil de criança autenticado — nunca se o dispositivo que o
+autenticou continuava válido. `Api\ChildDeviceController::activate()`
+tinha o mesmo problema do lado do token: `createToken($nome, ['child'])`
+não guardava nenhuma referência ao dispositivo, e
+`EnsureApiPrincipal` só verificava o tipo do principal (`ChildProfile`
+vs `User`), nunca o estado do dispositivo. `MediaStreamController` (sem
+nenhum middleware de guarda própria — resolve os três guards à mão)
+autorizava um principal `ChildProfile` só pela organização e pela posse
+do media (`childMayAccess()`), nunca pelo estado do dispositivo.
+Resultado: revogar um dispositivo (`DeviceAssociationController::revoke`)
+só impedia um *novo* login — não tinha qualquer efeito em sessões ou
+tokens já emitidos a partir dele, que continuavam válidos até expirarem
+naturalmente (sessão do browser) ou serem eliminados manualmente (token).
+
+**Causa:** nenhum ponto de autenticação registava a proveniência (qual
+dispositivo) de uma sessão/token; nenhum ponto de autorização voltava a
+consultar essa proveniência depois do login inicial.
+
+**Correção:**
+- `DeviceAssociation::resolveActiveFor(ChildProfile $child, ?int
+  $deviceAssociationId)`: ponto único de verdade — dado um id de
+  dispositivo reclamado, devolve o dispositivo só se pertencer a esta
+  criança e `isSessionUsable()` (não revogado, não expirado, não
+  bloqueado). Um id nulo (sessão/token sem proveniência registada, ou
+  seja, anterior a esta correção) é sempre tratado como inválido —
+  nunca assumido como válido por omissão. Usado identicamente pelos três
+  pontos de aplicação abaixo.
+- `ChildSessionController::loginChild()` passa a guardar
+  `child_device_association_id` na sessão.
+- Nova middleware `EnsureChildDeviceIsActive`, acrescentada ao grupo
+  global `web` (mesmo padrão que `EnsureAccountIsActive` já usava para
+  contas de equipa) — verifica o dispositivo da sessão e
+  `$child->isActive()` em **todos** os pedidos autenticados; se algum
+  falhar, termina a sessão e redireciona para o login da criança.
+- `Api\ChildDeviceController`: o token passa a incluir uma "ability"
+  `"device:{id}"` (`createToken($nome, ['child', "device:{$device->id}"])`).
+  `DeviceAssociation::idFromTokenAbilities()` extrai esse id de forma
+  segura (nunca confiando em nada vindo do próprio pedido). `
+  EnsureApiPrincipal` (ramo `child`) passa a chamar
+  `resolveActiveFor()` com esse id, apagando o token
+  (`$token->delete()`) e devolvendo 401 se inválido.
+- `MediaStreamController`: para um principal `ChildProfile`, acrescenta
+  `abort_unless($principal->isActive(), 403)` e uma nova verificação
+  `childDeviceIsActive()` — resolve o id do dispositivo tanto da sessão
+  (fluxo web) como das abilities do token Sanctum (fluxo API), antes de
+  sequer chegar à verificação de posse do media. Uma URL assinada válida
+  nunca substitui esta autorização — continua a ser preciso as duas
+  coisas.
+- `ChildProfile::isActive()` (nova, espelha `User::isActive()`).
+
+**Teste de regressão:** `tests/Feature/DeviceRevocationPropagationTest.php`
+(5 testes, percurso HTTP real, não só o serviço) — revogar o dispositivo
+de uma sessão web ativa termina-a no pedido seguinte; revogar um
+dispositivo não afeta uma sessão estabelecida a partir de outro
+dispositivo da mesma criança; desativar o perfil da criança termina a
+sessão da mesma forma; uma sessão estabelecida sem dispositivo registado
+(`actingAs()` puro, simulando uma sessão anterior a esta correção) é
+tratada como inválida, não como "grandfathered in"; e — o caso que
+nenhuma outra camada protegia — revogar o dispositivo corta o acesso a
+media pela API imediatamente, mesmo com uma URL assinada ainda
+criptograficamente válida.
+
+Isto obrigou a atualizar 5 ficheiros de teste existentes
+(`AttemptSubmissionTest`, `AttemptExecutionTest`,
+`StepResponseValidationTest`, `ChildIsolationTest`, `ChildFeedbackTest`)
+que autenticavam uma criança via `actingAs($child, 'child')` puro — que a
+partir de agora é, com propósito, uma sessão sem dispositivo verificável
+e por isso rejeitada. Criado um helper `Tests\TestCase::actingAsChild()`
+que autentica através de um `DeviceAssociation` ativado de verdade (com
+o seu id na sessão), usado por todos esses ficheiros a partir de agora.
+
+**Resultado obtido:** 120 testes / 413 assertions a passar. Confirmei por
+leitura do código antigo (citado acima) que nenhum destes pontos existia
+antes — não é um caso de "já estava parcialmente protegido".
 
 ## Achado 3 — Ativação de utilização única
 

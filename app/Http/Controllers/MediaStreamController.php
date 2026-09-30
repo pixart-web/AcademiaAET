@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityStep;
 use App\Models\ChildProfile;
+use App\Models\DeviceAssociation;
 use App\Models\MediaAsset;
 use App\Models\StepResponse;
 use App\Models\User;
@@ -31,6 +32,8 @@ class MediaStreamController extends Controller
         if ($principal instanceof User) {
             abort_unless($principal->organization_id === $media->organization_id, 403);
         } elseif ($principal instanceof ChildProfile) {
+            abort_unless($principal->isActive(), 403);
+            abort_unless($this->childDeviceIsActive($principal, $request), 403);
             abort_unless($this->childMayAccess($principal, $media), 403);
         } else {
             abort(401);
@@ -41,6 +44,22 @@ class MediaStreamController extends Controller
         return Storage::disk($media->disk)->response($media->path, null, [
             'Cache-Control' => 'private, max-age=60, no-store',
         ]);
+    }
+
+    /**
+     * AET-RC01 finding 2: a signed URL alone never substitutes for
+     * authorization, and a revoked/expired device was the one gap a signed
+     * URL genuinely could bypass — this route has no guard middleware at
+     * all (it manually tries all three), so the check has to live here
+     * directly rather than in route middleware.
+     */
+    private function childDeviceIsActive(ChildProfile $child, Request $request): bool
+    {
+        $deviceId = $request->hasSession() && $request->session()->has('child_device_association_id')
+            ? $request->session()->get('child_device_association_id')
+            : DeviceAssociation::idFromTokenAbilities($child->currentAccessToken()?->abilities ?? []);
+
+        return DeviceAssociation::resolveActiveFor($child, $deviceId) !== null;
     }
 
     private function childMayAccess($child, MediaAsset $media): bool

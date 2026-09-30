@@ -52,7 +52,7 @@ class StepResponseValidationTest extends TestCase
             ['response_type' => ResponseType::SingleChoice->value, 'response_config' => ['options' => ['a', 'b'], 'correct' => 'b']],
         ]);
 
-        $this->actingAs($attempt->assignment->childProfile, 'child')
+        $this->actingAsChild($attempt->assignment->childProfile)
             ->get(route('child.attempts.show', $attempt))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
@@ -68,7 +68,7 @@ class StepResponseValidationTest extends TestCase
         ]);
         $step = $attempt->assignment->activityVersion->steps()->firstOrFail();
 
-        $this->actingAs($attempt->assignment->childProfile, 'child')
+        $this->actingAsChild($attempt->assignment->childProfile)
             ->post(route('child.attempts.save-step', [$attempt, $step]), ['value' => 'z'])
             ->assertSessionHasErrors('value');
 
@@ -82,7 +82,7 @@ class StepResponseValidationTest extends TestCase
         ]);
         $step = $attempt->assignment->activityVersion->steps()->firstOrFail();
 
-        $this->actingAs($attempt->assignment->childProfile, 'child')
+        $this->actingAsChild($attempt->assignment->childProfile)
             ->post(route('child.attempts.save-step', [$attempt, $step]), ['value' => ['c', 'a']])
             ->assertRedirect();
 
@@ -97,11 +97,11 @@ class StepResponseValidationTest extends TestCase
         $step = $attempt->assignment->activityVersion->steps()->firstOrFail();
         $child = $attempt->assignment->childProfile;
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->post(route('child.attempts.save-step', [$attempt, $step]), ['value' => ['a', 'a']])
             ->assertSessionHasErrors('value');
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->post(route('child.attempts.save-step', [$attempt, $step]), ['value' => ['a', 'invented']])
             ->assertSessionHasErrors('value');
     }
@@ -114,11 +114,11 @@ class StepResponseValidationTest extends TestCase
         $step = $attempt->assignment->activityVersion->steps()->firstOrFail();
         $child = $attempt->assignment->childProfile;
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->post(route('child.attempts.save-step', [$attempt, $step]), ['value' => ''])
             ->assertSessionHasErrors('value');
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->post(route('child.attempts.save-step', [$attempt, $step]), ['value' => 'demasiado longo para caber'])
             ->assertSessionHasErrors('value');
     }
@@ -131,11 +131,11 @@ class StepResponseValidationTest extends TestCase
         $step = $attempt->assignment->activityVersion->steps()->firstOrFail();
         $child = $attempt->assignment->childProfile;
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->post(route('child.attempts.save-step', [$attempt, $step]), ['value' => 'yes please'])
             ->assertSessionHasErrors('value');
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->post(route('child.attempts.save-step', [$attempt, $step]), ['value' => true])
             ->assertRedirect();
 
@@ -150,7 +150,7 @@ class StepResponseValidationTest extends TestCase
         ]);
         $child = $attempt->assignment->childProfile;
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->post(route('child.attempts.submit', $attempt))
             ->assertSessionHasErrors('steps');
 
@@ -166,10 +166,10 @@ class StepResponseValidationTest extends TestCase
         $child = $attempt->assignment->childProfile;
         $steps = $attempt->assignment->activityVersion->steps;
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->post(route('child.attempts.save-step', [$attempt, $steps[0]]), ['value' => 'resposta']);
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->post(route('child.attempts.submit', $attempt))
             ->assertRedirect(route('child.home'));
 

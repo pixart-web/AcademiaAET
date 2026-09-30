@@ -122,7 +122,12 @@ class ApiChildFlowTest extends TestCase
     {
         $assignment = $this->makeAssignment();
         $otherChild = ChildProfile::factory()->for($assignment->childProfile->organization)->create();
-        $token = $otherChild->createToken('phpunit', ['child'])->plainTextToken;
+        $pro = $assignment->assignedBy;
+        $this->deviceFor($otherChild, $pro, 'OTHERCHILD', '4321');
+
+        $token = $this->postJson('/api/v1/child/device/activate', [
+            'device_code' => 'OTHERCHILD', 'pin' => '4321', 'device_name' => 'phpunit',
+        ])->json('token');
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson("/api/v1/child/assignments/{$assignment->id}/start")
