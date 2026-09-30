@@ -30,7 +30,13 @@ class MediaStreamController extends Controller
             ?? Auth::guard('sanctum')->user();
 
         if ($principal instanceof User) {
-            abort_unless($principal->organization_id === $media->organization_id, 403);
+            // AET-RC01 finding 1: this used to be only an organization
+            // check — any professional could stream any other child's
+            // clinical recording, as long as it happened to be in the same
+            // organization. Delegates to MediaAssetPolicy, the same policy
+            // MediaAssetController's library listing/archive actions use,
+            // so this is one rule, not two that could drift apart.
+            abort_unless($principal->can('view', $media), 403);
         } elseif ($principal instanceof ChildProfile) {
             abort_unless($principal->isActive(), 403);
             abort_unless($this->childDeviceIsActive($principal, $request), 403);

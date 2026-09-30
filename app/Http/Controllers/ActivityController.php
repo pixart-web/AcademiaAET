@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\MediaPurpose;
 use App\Enums\ResponseType;
 use App\Models\Activity;
 use App\Services\ActivityVersioningService;
@@ -234,7 +235,19 @@ class ActivityController extends Controller
             'steps' => ['required', 'array', 'min:1'],
             'steps.*.title' => ['nullable', 'string', 'max:255'],
             'steps.*.body' => ['nullable', 'string', 'max:5000'],
-            'steps.*.instruction_media_asset_id' => ['nullable', 'exists:media_assets,id'],
+            'steps.*.instruction_media_asset_id' => [
+                'nullable',
+                // AET-RC01 finding 1/5: a global exists() isn't enough — it
+                // would happily accept another organization's media, or a
+                // child's own clinical recording, as long as the numeric
+                // id existed anywhere in the table. Scoped to exactly what
+                // MediaAssetController's own library lists: this
+                // organization's active, instructional content.
+                Rule::exists('media_assets', 'id')
+                    ->where('organization_id', $request->user()->organization_id)
+                    ->where('purpose', MediaPurpose::Instructional->value)
+                    ->where('status', 'active'),
+            ],
             'steps.*.response_type' => ['required', Rule::in(array_column(ResponseType::cases(), 'value'))],
             'steps.*.response_config' => ['nullable', 'array'],
             'steps.*.response_config.required' => ['sometimes', 'boolean'],

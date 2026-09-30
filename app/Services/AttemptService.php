@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\AssignmentStatus;
 use App\Enums\AttemptStatus;
 use App\Enums\MediaKind;
+use App\Enums\MediaPurpose;
 use App\Enums\ResponseType;
 use App\Models\ActivityStep;
 use App\Models\Assignment;
@@ -235,6 +236,8 @@ class AttemptService
         return MediaAsset::create([
             'organization_id' => $child->organization_id,
             'uploaded_by_user_id' => null,
+            'purpose' => MediaPurpose::ClinicalResponse,
+            'owner_child_profile_id' => $child->id,
             'disk' => 'local',
             'path' => $path,
             'mime_type' => $detectedMime,
@@ -257,6 +260,8 @@ class AttemptService
         return MediaAsset::create([
             'organization_id' => $child->organization_id,
             'uploaded_by_user_id' => null,
+            'purpose' => MediaPurpose::ClinicalResponse,
+            'owner_child_profile_id' => $child->id,
             'disk' => 'local',
             'path' => $path,
             'mime_type' => $detectedMime,

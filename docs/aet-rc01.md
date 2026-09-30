@@ -18,7 +18,97 @@ Estados usados: **Corrigido e verificado** · **Corrigido parcialmente** ·
 
 ## Achado 1 — Isolamento das gravações clínicas
 
-Estado: em progresso.
+Estado: **Corrigido e verificado.**
+
+**Reprodução (código antigo):** `AttemptService::storeRecording()` e
+`::storeDrawing()` criavam a gravação/desenho da criança como uma
+`MediaAsset` comum — mesma tabela, mesmo `status = 'active'`, nenhum
+campo a distinguir "conteúdo didático" de "resposta clínica".
+`MediaAssetController::index()` listava `$organization->mediaAssets()
+->where('status', 'active')` sem mais nenhum filtro: a biblioteca de
+conteúdos de qualquer profissional incluía as gravações/desenhos de
+todas as crianças da organização. `MediaStreamController`, para um
+principal `User`, só verificava
+`$principal->organization_id === $media->organization_id` — uma
+terapeuta sem nenhuma associação ao caso conseguia reproduzir a gravação
+de qualquer criança da mesma organização, só por conhecer (ou adivinhar)
+o id. `ActivityController`'s `instruction_media_asset_id` validava só
+`exists:media_assets,id` — qualquer id numérico existente na tabela,
+incluindo o de uma gravação clínica de outra criança, era aceite como
+conteúdo didático de uma atividade. Tudo confirmado por leitura direta
+do código antes de qualquer alteração.
+
+**Causa:** a tabela `media_assets` nunca teve um campo a distinguir
+finalidade (didático vs. resposta clínica) nem propriedade (a que
+criança pertence uma resposta clínica) — a autorização por organização
+tratava as duas coisas como equivalentes.
+
+**Correção:**
+- Novo enum `App\Enums\MediaPurpose` (`instructional` /
+  `clinical_response`) e migração
+  `2026_09_30_204121_add_purpose_and_owner_to_media_assets_table`:
+  acrescenta `purpose` e `owner_child_profile_id` a `media_assets`, com
+  **backfill** dos registos existentes (não destrutivo): qualquer media
+  referenciada por `step_responses.media_asset_id` passa a
+  `clinical_response` com o dono correspondente; o resto com
+  `uploaded_by_user_id` preenchido passa a `instructional`; o que sobrar
+  (propriedade indeterminável) fica com `purpose = NULL`, propositamente
+  — nunca apagado, nunca assumido como um dos dois tipos.
+- `AttemptService::storeRecording()`/`::storeDrawing()` marcam a media
+  criada como `clinical_response`, com `owner_child_profile_id` = a
+  criança da tentativa.
+- `MediaAssetController::store()` marca o upload profissional como
+  `instructional`; `::index()` passa a filtrar também por
+  `purpose = instructional` — uma resposta clínica nunca mais aparece na
+  biblioteca didática, para ninguém.
+- `MediaAssetPolicy::view()` (agora usada por `MediaStreamController`,
+  não só pelo controller da biblioteca — ver abaixo): conteúdo
+  `instructional` continua visível a qualquer profissional/admin da
+  organização, como antes. Uma `clinical_response` exige associação de
+  caso ativa (`ProfessionalAssignment`) ao `owner_child_profile_id`, **ou
+  admin** — a mesma regra que `ChildProfilePolicy` já aplicava ao perfil
+  da criança (não uma exceção nova inventada para media). `purpose` nulo
+  (registo legado sem proveniência determinável) é tratado como uma
+  resposta clínica sem dono: só um admin o vê, para revisão manual —
+  nunca a biblioteca geral, nunca uma terapeuta qualquer da organização.
+  `update()`/`delete()` seguem a mesma regra.
+- `MediaStreamController`: o ramo do principal `User` passa a chamar
+  `$principal->can('view', $media)` (delega na Policy acima) em vez de só
+  verificar a organização — uma URL assinada válida nunca substitui isto.
+- `ActivityController::validateActivity()`: `instruction_media_asset_id`
+  passa a usar `Rule::exists('media_assets', 'id')->where('organization_id',
+  ...)->where('purpose', 'instructional')->where('status', 'active')` em
+  vez de um `exists` global — uma gravação clínica (de qualquer criança,
+  mesmo a própria) já não pode ser associada a um passo como conteúdo
+  didático, mesmo enviando o id manualmente.
+- Encarregados de educação: `GuardianHomeController` não tem, e nunca
+  teve, nenhuma rota que exponha media — confirmado por leitura, não
+  havia nada para corrigir aqui.
+
+**Teste de regressão:** `tests/Feature/ClinicalMediaIsolationTest.php`
+(7 testes) — terapeuta sem associação ao caso não lista nem reproduz a
+gravação; terapeuta associada consegue; admin consegue sem associação de
+caso; profissional de outra organização é rejeitado; a gravação nunca
+aparece na listagem da biblioteca; conteúdo didático continua a listar e
+reproduzir normalmente (rede de segurança contra regressão); e um id de
+gravação clínica não pode ser usado como `instruction_media_asset_id` ao
+criar uma atividade.
+
+**Nota sobre um obstáculo de teste genuíno, não relacionado com o código
+de produção**: escrever estes testes expôs uma armadilha real do
+`Illuminate\Auth\Middleware\Authenticate` do próprio Laravel — ao
+autenticar com sucesso, chama `Auth::shouldUse($guard)`, que **muda a
+configuração `auth.defaults.guard` para o resto do processo PHP** (não
+só um cache de instância). Um teste que faça primeiro um pedido HTTP
+real autenticado como criança (`auth:child`) e depois chame
+`actingAs($profissional)` **sem indicar o guard** autentica esse
+profissional no guard **`child`**, não `web` — silenciosamente. Corrigido
+nos testes novos sempre indicando `actingAs($user, 'web')`
+explicitamente depois de qualquer interação HTTP real do lado da
+criança. Vale a pena ter isto em conta em testes futuros que misturem os
+dois lados.
+
+**Resultado obtido:** 127 testes / 440 assertions a passar.
 
 ## Achado 2 — Revogação e expiração de dispositivos
 

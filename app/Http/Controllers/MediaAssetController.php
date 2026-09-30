@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\MediaKind;
+use App\Enums\MediaPurpose;
 use App\Models\MediaAsset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,10 @@ class MediaAssetController extends Controller
 
         $media = $request->user()->organization->mediaAssets()
             ->where('status', 'active')
+            // Never lists a child's clinical recordings/drawings, even to
+            // staff in the same organization — see MediaStreamController
+            // and MediaAssetPolicy for the matching read/stream checks.
+            ->where('purpose', MediaPurpose::Instructional)
             ->latest()
             ->paginate(24)
             ->withQueryString();
@@ -83,6 +88,7 @@ class MediaAssetController extends Controller
             ...$data,
             'organization_id' => $request->user()->organization_id,
             'uploaded_by_user_id' => $request->user()->id,
+            'purpose' => MediaPurpose::Instructional,
             'disk' => 'local',
             'path' => $path,
             'mime_type' => $detectedMime,
