@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\URL;
 
 #[Fillable([
     'activity_version_id', 'position', 'title', 'body',
@@ -88,5 +89,33 @@ class ActivityStep extends Model
         unset($config['correct']);
 
         return $config;
+    }
+
+    /**
+     * AET-RC01 finding 5: MediaPreview used to receive a bare signed URL
+     * and guess image-vs-audio from its file extension — which a signed
+     * URL never has. This carries the type explicitly instead, plus the
+     * text alternatives a child-facing renderer needs regardless of kind.
+     * Shared by AttemptService::serializeSteps() (the real execution) and
+     * ActivityController::preview() (the staff-only dry run), so the two
+     * can never describe the same media differently.
+     *
+     * @return array{url: string, kind: string, mime_type: string, alt_text: ?string, transcript: ?string}|null
+     */
+    public function instructionMediaPayload(): ?array
+    {
+        $media = $this->instructionMedia;
+
+        if ($media === null) {
+            return null;
+        }
+
+        return [
+            'url' => URL::temporarySignedRoute('media.show', now()->addMinutes(15), ['media' => $media->id]),
+            'kind' => $media->kind->value,
+            'mime_type' => $media->mime_type,
+            'alt_text' => $media->alt_text,
+            'transcript' => $media->transcript,
+        ];
     }
 }

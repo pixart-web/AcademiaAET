@@ -29,6 +29,8 @@ class MediaStreamController extends Controller
             ?? Auth::guard('child')->user()
             ?? Auth::guard('sanctum')->user();
 
+        $isAssignedInstructionMedia = false;
+
         if ($principal instanceof User) {
             // AET-RC01 finding 1: this used to be only an organization
             // check — any professional could stream any other child's
@@ -40,12 +42,19 @@ class MediaStreamController extends Controller
         } elseif ($principal instanceof ChildProfile) {
             abort_unless($principal->isActive(), 403);
             abort_unless($this->childDeviceIsActive($principal, $request), 403);
-            abort_unless($this->childMayAccess($principal, $media), 403);
+            $isAssignedInstructionMedia = $this->isInstructionMediaFor($principal, $media);
+            abort_unless($isAssignedInstructionMedia || $this->isOwnRecording($principal, $media), 403);
         } else {
             abort(401);
         }
 
-        abort_unless($media->status === 'active', 404);
+        // AET-RC01 finding 5: archiving a piece of instructional media
+        // (MediaAssetController::destroy) stops it being offered for NEW
+        // activities, but must not retroactively 404 the instructions of a
+        // version a child already has assigned — history stays intact.
+        // Every other path (a fresh library view, a clinical response)
+        // still requires the media to be active.
+        abort_unless($media->status === 'active' || $isAssignedInstructionMedia, 404);
 
         return Storage::disk($media->disk)->response($media->path, null, [
             'Cache-Control' => 'private, max-age=60, no-store',
@@ -68,22 +77,27 @@ class MediaStreamController extends Controller
         return DeviceAssociation::resolveActiveFor($child, $deviceId) !== null;
     }
 
-    private function childMayAccess($child, MediaAsset $media): bool
+    private function isInstructionMediaFor(ChildProfile $child, MediaAsset $media): bool
     {
         if ($media->organization_id !== $child->organization_id) {
             return false;
         }
 
-        $isInstructionMedia = ActivityStep::query()
+        return ActivityStep::query()
             ->where('instruction_media_asset_id', $media->id)
             ->whereHas('activityVersion.assignments', fn ($q) => $q->where('child_profile_id', $child->id))
             ->exists();
+    }
 
-        $isOwnRecording = StepResponse::query()
+    private function isOwnRecording(ChildProfile $child, MediaAsset $media): bool
+    {
+        if ($media->organization_id !== $child->organization_id) {
+            return false;
+        }
+
+        return StepResponse::query()
             ->where('media_asset_id', $media->id)
             ->whereHas('attempt.assignment', fn ($q) => $q->where('child_profile_id', $child->id))
             ->exists();
-
-        return $isInstructionMedia || $isOwnRecording;
     }
 }

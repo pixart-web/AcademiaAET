@@ -13,6 +13,7 @@ interface StepForm {
     body: string;
     response_type: string;
     response_config: ResponseConfig;
+    instruction_media_asset_id: number | null;
 }
 
 interface ActivityData {
@@ -31,9 +32,24 @@ interface ActivityData {
             body: string | null;
             response_type: string;
             response_config: ResponseConfig | null;
+            instruction_media_asset_id: number | null;
         }[];
     };
 }
+
+interface AvailableMedia {
+    id: number;
+    title: string;
+    kind: string;
+    alt_text: string | null;
+}
+
+const MEDIA_KIND_LABEL: Record<string, string> = {
+    image: 'Imagem',
+    audio: 'Áudio',
+    video: 'Vídeo',
+    document: 'Documento',
+};
 
 const RESPONSE_TYPE_LABEL: Record<string, string> = {
     single_choice: 'Escolha única',
@@ -45,9 +61,23 @@ const RESPONSE_TYPE_LABEL: Record<string, string> = {
     completion_confirmation: 'Confirmação de realização',
 };
 
-const emptyStep = (): StepForm => ({ title: '', body: '', response_type: 'single_choice', response_config: { options: ['', ''], required: true } });
+const emptyStep = (): StepForm => ({
+    title: '',
+    body: '',
+    response_type: 'single_choice',
+    response_config: { options: ['', ''], required: true },
+    instruction_media_asset_id: null,
+});
 
-export default function Edit({ activity, responseTypes }: { activity: ActivityData | null; responseTypes: { value: string; label: string }[] }) {
+export default function Edit({
+    activity,
+    responseTypes,
+    availableMedia,
+}: {
+    activity: ActivityData | null;
+    responseTypes: { value: string; label: string }[];
+    availableMedia: AvailableMedia[];
+}) {
     const version = activity?.current_version;
 
     const { data, setData, post, put, processing, errors } = useForm({
@@ -63,6 +93,7 @@ export default function Edit({ activity, responseTypes }: { activity: ActivityDa
             body: s.body ?? '',
             response_type: s.response_type,
             response_config: { required: true, ...(s.response_config ?? {}) },
+            instruction_media_asset_id: s.instruction_media_asset_id,
         })) ?? [emptyStep()]) as StepForm[],
     });
 
@@ -233,6 +264,44 @@ export default function Edit({ activity, responseTypes }: { activity: ActivityDa
                                     className="rounded-shell border-border sm:col-span-2 focus:border-accent focus:ring-accent"
                                     rows={2}
                                 />
+                            </div>
+
+                            <div className="mt-3">
+                                <label className="block text-sm font-medium text-ink">Conteúdo de apoio (opcional)</label>
+                                <div className="mt-1 flex items-center gap-2">
+                                    <select
+                                        value={step.instruction_media_asset_id ?? ''}
+                                        onChange={(e) => updateStep(index, {
+                                            instruction_media_asset_id: e.target.value ? Number(e.target.value) : null,
+                                        })}
+                                        className="flex-1 rounded-shell border-border focus:border-accent focus:ring-accent"
+                                    >
+                                        <option value="">Nenhum</option>
+                                        {availableMedia.map((media) => (
+                                            <option key={media.id} value={media.id}>
+                                                {MEDIA_KIND_LABEL[media.kind] ?? media.kind} — {media.title}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {step.instruction_media_asset_id !== null && (
+                                        <button
+                                            type="button"
+                                            onClick={() => updateStep(index, { instruction_media_asset_id: null })}
+                                            className="text-sm text-danger"
+                                        >
+                                            Remover
+                                        </button>
+                                    )}
+                                </div>
+                                {availableMedia.length === 0 && (
+                                    <p className="mt-1 text-sm text-ink-muted">
+                                        Sem conteúdo didático disponível — carregue um em{' '}
+                                        <Link href={route('media.index')} className="text-accent underline">
+                                            Conteúdos
+                                        </Link>
+                                        .
+                                    </p>
+                                )}
                             </div>
 
                             <label className="mt-3 flex items-center gap-2 text-sm text-ink-muted">

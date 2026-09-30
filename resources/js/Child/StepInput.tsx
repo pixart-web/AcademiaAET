@@ -1,14 +1,22 @@
 import { useRef, useState } from 'react';
-import { Step } from './types';
+import { MediaPayload, Step } from './types';
 
-export function MediaPreview({ url }: { url: string }) {
-    const isAudio = /\.(mp3|wav|ogg|webm)(\?|$)/i.test(url) || url.includes('audio');
+/**
+ * AET-RC01 finding 5: renders strictly by the explicit `kind` the server
+ * sends — never by sniffing the URL, which for a signed media.show URL
+ * has no file extension to sniff in the first place. Also the only place
+ * that previously had no video case at all.
+ */
+export function MediaPreview({ media }: { media: MediaPayload }) {
+    const altText = media.alt_text ?? undefined;
+
     return (
         <div className="mt-4">
-            {isAudio ? (
-                <audio controls src={url} className="mx-auto w-full max-w-xs" />
-            ) : (
-                <img src={url} alt="" className="mx-auto max-h-64 rounded-shell" />
+            {media.kind === 'audio' && <audio controls src={media.url} className="mx-auto w-full max-w-xs" />}
+            {media.kind === 'video' && <video controls src={media.url} className="mx-auto max-h-64 max-w-full rounded-shell" />}
+            {media.kind === 'image' && <img src={media.url} alt={altText ?? ''} className="mx-auto max-h-64 rounded-shell" />}
+            {(media.alt_text || media.transcript) && (
+                <p className="mt-2 text-sm text-ink-muted">{media.transcript ?? media.alt_text}</p>
             )}
         </div>
     );

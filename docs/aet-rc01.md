@@ -309,7 +309,82 @@ PDO reais.
 
 ## Achado 5 — Instruções multimédia e editor
 
-Estado: em progresso.
+Estado: **Corrigido e verificado.**
+
+**Reprodução (código antigo):** `Child/StepInput.tsx`'s `MediaPreview`
+recebia só uma URL e decidia "é áudio?" com
+`/\.(mp3|wav|ogg|webm)(\?|$)/i.test(url)` — uma URL assinada
+(`/media/{id}/file?expires=...&signature=...`) nunca tem extensão de
+ficheiro, pelo que este teste falhava sempre e tudo que não fosse
+detetado como áudio caía no `<img>`, incluindo vídeo — que, além disso,
+**não tinha nenhum caso de renderização próprio** (confirmado por
+leitura: o componente só tinha os ramos áudio/imagem). O editor
+(`Activities/Edit.tsx`) nunca teve nenhum campo, select ou botão para
+associar `instruction_media_asset_id` a um passo — o valor existia na
+base de dados e na validação do servidor, mas nunca havia forma de o
+definir pela UI, confirmando "o editor não oferece associação funcional
+de media aos passos" literalmente.
+
+**Causa:** falta de um contrato explícito de tipo entre servidor e
+cliente para media, e um campo do modelo de dados sem UI nenhuma.
+
+**Correção:**
+- `ActivityStep::instructionMediaPayload()` (novo): devolve
+  `{ url, kind, mime_type, alt_text, transcript }` em vez de uma URL
+  nua — partilhado por `AttemptService::serializeSteps()` (execução
+  real) e `ActivityController::preview()` (pré-visualização da equipa),
+  para as duas nunca poderem descrever a mesma media de forma diferente.
+- `Child/StepInput.tsx`'s `MediaPreview` passa a escolher o elemento
+  (`<img>`/`<audio>`/`<video>`) exclusivamente pelo `kind` explícito —
+  nunca por sniffing da URL — e ganhou o caso `video` que não existia. A
+  alternativa textual (`alt_text`/`transcript`) é sempre mostrada como
+  texto visível, não só como atributo `alt`.
+- `Activities/Edit.tsx`: novo campo "Conteúdo de apoio (opcional)" por
+  passo — um `<select>` com a media instrucional ativa da organização
+  (`ActivityController::availableInstructionalMedia()`, mesmo âmbito
+  exato da regra de validação: organização + `purpose=instructional` +
+  `status=active`, para nada oferecido aqui poder falhar essa
+  validação) e um botão para remover a associação.
+- Preservação ao editar/duplicar/criar versões: já funcionava
+  corretamente no backend (`ActivityVersioningService::replaceSteps()`
+  já persistia `instruction_media_asset_id` recebido) — o único elo em
+  falta era a UI nunca o enviar; com o campo novo, passa a fazê-lo.
+  Confirmado com um teste dedicado (abaixo) e ao vivo no browser.
+- Arquivamento preserva o histórico: `MediaAssetController::destroy()`
+  (arquivar) marca a media como `archived`, o que antes fazia
+  `MediaStreamController` devolver 404 mesmo para uma criança com uma
+  versão **já atribuída** que a referencia como instrução — quebrando
+  uma atividade publicada por uma ação de arquivo posterior e não
+  relacionada. Corrigido: o controlador distingue agora "esta media é a
+  instrução de um passo desta criança atribuído" — só nesse caso
+  específico o `status==='archived'` deixa de bloquear a reprodução;
+  qualquer outro caso (biblioteca, nova atividade, resposta clínica)
+  continua a exigir `status==='active'`.
+
+**Teste de regressão:** `tests/Feature/ActivityMediaInstructionsTest.php`
+(6 testes) — criar um passo com media via HTTP; media de outra
+organização rejeitada como instrução; reabrir o editor não perde a
+associação; a associação sobrevive a duplicar e a bifurcar versão;
+arquivar a media não quebra uma atividade já atribuída, mas deixa de a
+oferecer para uma atividade nova; uma resposta clínica arquivada
+continua bloqueada por ambas as razões (não é só o estado "arquivado"
+que a protegia).
+
+**Verificado ao vivo no browser** (servidor local desta sessão): criei
+três `MediaAsset` reais (imagem/áudio/vídeo, com `alt_text`/`transcript`)
+diretamente na base de dados de desenvolvimento — o browser embutido
+desta sessão não tem uma ferramenta de upload de ficheiros, por isso o
+upload em si não foi acionado através da UI, só criado previamente para
+que a UI tivesse o que listar; tudo o resto foi feito exclusivamente
+pela interface: criei uma atividade de três passos pela UI, associei
+cada tipo de media a um passo através do novo seletor, publiquei,
+reabri o editor e confirmei (via JS no DOM) que as três associações
+`value="1"/"2"/"3"` continuavam corretas, e pré-visualizei os três
+layouts (3–6, 7–13, 14–18) confirmando que `<img>`, `<audio>` e
+`<video>` renderizam com o `src` assinado correto em cada um,
+exclusivamente pelo `kind`.
+
+**Resultado obtido:** 133 testes / 467 assertions a passar.
 
 ## Achado 6 — Validação e pontuação
 

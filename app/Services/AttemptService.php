@@ -92,9 +92,7 @@ class AttemptService
                 // Never the raw config — it may hold `correct`, the answer key.
                 'response_config' => $step->childSafeResponseConfig(),
                 'required' => $step->isRequired(),
-                'instruction_media_url' => $step->instructionMedia
-                    ? URL::temporarySignedRoute('media.show', now()->addMinutes(15), ['media' => $step->instructionMedia->id])
-                    : null,
+                'instruction_media' => $step->instructionMediaPayload(),
                 'answered' => $response !== null,
                 'value' => $response?->value,
                 'response_media_url' => $response?->media_asset_id

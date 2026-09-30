@@ -5,12 +5,12 @@ namespace App\Http\Controllers;
 use App\Enums\MediaPurpose;
 use App\Enums\ResponseType;
 use App\Models\Activity;
+use App\Models\MediaAsset;
 use App\Services\ActivityVersioningService;
 use App\Services\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -29,11 +29,15 @@ class ActivityController extends Controller
         return Inertia::render('Activities/Index', ['activities' => $activities]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
         $this->authorize('create', Activity::class);
 
-        return Inertia::render('Activities/Edit', ['activity' => null, 'responseTypes' => $this->responseTypeOptions()]);
+        return Inertia::render('Activities/Edit', [
+            'activity' => null,
+            'responseTypes' => $this->responseTypeOptions(),
+            'availableMedia' => $this->availableInstructionalMedia($request),
+        ]);
     }
 
     public function store(Request $request, ActivityVersioningService $versioning): RedirectResponse
@@ -75,6 +79,7 @@ class ActivityController extends Controller
         return Inertia::render('Activities/Edit', [
             'activity' => $activity,
             'responseTypes' => $this->responseTypeOptions(),
+            'availableMedia' => $this->availableInstructionalMedia($request),
         ]);
     }
 
@@ -207,9 +212,8 @@ class ActivityController extends Controller
                 'body' => $step->body,
                 'response_type' => $step->response_type,
                 'response_config' => $step->response_config,
-                'instruction_media_url' => $step->instructionMedia
-                    ? URL::temporarySignedRoute('media.show', now()->addMinutes(15), ['media' => $step->instructionMedia->id])
-                    : null,
+                'required' => $step->isRequired(),
+                'instruction_media' => $step->instructionMediaPayload(),
                 'answered' => false,
                 'value' => null,
             ])->all()
@@ -267,5 +271,30 @@ class ActivityController extends Controller
             'value' => $case->value,
             'label' => $case->name,
         ])->all();
+    }
+
+    /**
+     * AET-RC01 finding 5: the editor had no way to pick instruction media
+     * at all — the field existed in the database and was silently dropped
+     * on every save. Deliberately the same scope as the
+     * instruction_media_asset_id validation rule in validateActivity():
+     * this organization's active, instructional content only, so nothing
+     * offered here could ever fail that validation.
+     */
+    private function availableInstructionalMedia(Request $request): array
+    {
+        return MediaAsset::query()
+            ->where('organization_id', $request->user()->organization_id)
+            ->where('purpose', MediaPurpose::Instructional)
+            ->where('status', 'active')
+            ->orderBy('title')
+            ->get(['id', 'title', 'kind', 'alt_text'])
+            ->map(fn (MediaAsset $media) => [
+                'id' => $media->id,
+                'title' => $media->title ?? "#{$media->id}",
+                'kind' => $media->kind->value,
+                'alt_text' => $media->alt_text,
+            ])
+            ->all();
     }
 }
