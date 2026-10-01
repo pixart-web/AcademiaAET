@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\MediaKind;
+use App\Enums\MediaPurpose;
 use App\Enums\ResponseType;
 use App\Models\Activity;
 use App\Models\Assignment;
@@ -63,6 +64,8 @@ class ChildDataExportAndErasureTest extends TestCase
             'path' => $path,
             'mime_type' => 'audio/webm',
             'kind' => MediaKind::Audio,
+            'purpose' => MediaPurpose::ClinicalResponse,
+            'owner_child_profile_id' => $child->id,
             'size_bytes' => 5000,
             'status' => 'active',
         ]);

@@ -567,4 +567,73 @@ o achado 7 totalmente fechado.
 
 ## Achado 8 — Propriedade e limpeza de ficheiros
 
-Estado: em progresso.
+Estado: **Corrigido e verificado.**
+
+**Reprodução (código antigo):** `AttemptService::saveStep()` criava
+sempre um novo `MediaAsset` (`storeRecording()`/`storeDrawing()`) ao
+gravar um passo com ficheiro, e só repontava o `media_asset_id` do
+`StepResponse` existente — a linha e o ficheiro **anteriores** nunca
+eram tocados, ficando órfãos (sem nenhuma referência) tanto na base de
+dados como no disco, para sempre. Confirmado por leitura direta do
+método antes de qualquer alteração. `ChildDataService::eraseCompletely()`
+só encontrava media através de `step_responses.media_asset_id`
+**atuais** — uma gravação já substituída (exatamente o órfão acima)
+nunca era encontrada nem apagada, mesmo numa eliminação "completa" e
+"permanente" do registo da criança. A limpeza de armazenamento corria
+**dentro** da mesma transação da base de dados que apagava as linhas —
+se a transação revertesse depois (por qualquer motivo), os ficheiros já
+tinham desaparecido do disco mas as linhas continuavam na base de dados,
+um estado inconsistente e irreversível.
+
+**Causa:** nenhum conceito de "substituição" existia — cada gravação
+nova era tratada como independente, nunca como a sucessora de uma
+anterior; e a eliminação de uma criança procurava media só pela
+referência corrente, não pela propriedade real.
+
+**Correção:**
+- `AttemptService::saveStep()`: captura o `media_asset_id` anterior do
+  `StepResponse` **antes** de processar o novo ficheiro. O novo
+  `MediaAsset` é criado e o `StepResponse` repontado primeiro; só depois
+  disso ter sido persistido com sucesso é que
+  `retireReplacedMedia()` apaga o ficheiro anterior do disco e
+  soft-deleta a linha anterior — nunca ao contrário. O mesmo acontece ao
+  limpar um passo opcional sem enviar ficheiro novo (o anterior também é
+  retirado, não só desassociado). Uma falha a meio (ex.: MIME inválido no
+  novo ficheiro) nunca chega a tocar na resposta anterior — confirmado
+  por teste.
+- `retireReplacedMedia()` só atua sobre media com
+  `purpose === ClinicalResponse` — mesmo que fosse chamado com um id
+  errado, nunca apagaria conteúdo didático partilhado.
+- `ChildDataService::eraseCompletely()`: passa a procurar media por
+  **propriedade** (`owner_child_profile_id`, o campo acrescentado no
+  achado 1), não por referência corrente — encontra também gravações já
+  substituídas que nenhum `step_response` atual aponta. A ordem também
+  foi corrigida: os caminhos/discos são lidos **antes** da transação; a
+  transação apaga as linhas da base de dados e o perfil; só depois de a
+  transação **confirmar com sucesso** é que os ficheiros são apagados do
+  disco — uma reversão da transação nunca pode deixar ficheiros
+  apagados sem as linhas correspondentes também o estarem. Uma falha a
+  apagar um ficheiro individual é registada (`report()`) mas não trava
+  as restantes nem faz parecer que a eliminação falhou quando a parte
+  que importa (a base de dados) já está correta.
+- Novo comando `php artisan media:reconcile-orphans` (read-only,
+  nunca apaga nada): relatório de todas as linhas `media_assets` com
+  `purpose` por determinar (as que o backfill do achado 1 não conseguiu
+  classificar com segurança) — mantidas restritas a admin pela Policy, e
+  listadas aqui para revisão manual, nunca apagadas por suposição. A
+  opção `--check-files` relata também linhas ativas cujo ficheiro já não
+  existe no disco. Corri-o contra a base de dados de desenvolvimento: 0
+  problemas (ambiente limpo).
+
+**Teste de regressão:** `tests/Feature/MediaOwnershipAndCleanupTest.php`
+(5 testes) — regravar um passo retira a media anterior (soft-delete +
+ficheiro removido, a nova intacta); limpar um passo opcional retira a
+media anterior da mesma forma; um upload de substituição inválido nunca
+toca na resposta anterior; a eliminação de uma criança remove uma
+gravação já substituída que nada referencia atualmente; a eliminação
+nunca toca em media de outra criança nem em conteúdo didático partilhado.
+`tests/Feature/MediaReconcileOrphansCommandTest.php` (3 testes) — relata
+media por classificar sem apagar nada; relata "sem problemas" quando tudo
+está classificado; `--check-files` deteta um ficheiro em falta.
+
+**Resultado obtido:** 143 testes / 518 assertions a passar.

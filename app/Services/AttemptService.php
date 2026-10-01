@@ -17,6 +17,7 @@ use App\Notifications\AttemptSubmittedNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
 
@@ -111,23 +112,43 @@ class AttemptService
         $isFileResponse = $responseType->isRecording() || $responseType === ResponseType::Drawing;
 
         if ($isFileResponse) {
+            // AET-RC01 finding 8: captured before anything changes, so a
+            // re-recording/re-drawing of an already-answered step can
+            // retire the *previous* MediaAsset once the new one is safely
+            // in place — never the other way around, which would risk
+            // losing the old response if the new upload then failed.
+            $previousMediaAssetId = StepResponse::query()
+                ->where('attempt_id', $attempt->id)
+                ->where('activity_step_id', $step->id)
+                ->value('media_asset_id');
+
             if ($file === null) {
                 $this->abortIfFileRequired($step);
 
-                return StepResponse::updateOrCreate(
+                $response = StepResponse::updateOrCreate(
                     ['attempt_id' => $attempt->id, 'activity_step_id' => $step->id],
                     ['value' => null, 'media_asset_id' => null, 'is_correct' => null, 'answered_at' => null],
                 );
+                $this->retireReplacedMedia($previousMediaAssetId, null);
+
+                return $response;
             }
 
             $mediaAssetId = $responseType === ResponseType::Drawing
                 ? $this->storeDrawing($file, $child)
                 : $this->storeRecording($file, $child, $responseType);
 
-            return StepResponse::updateOrCreate(
+            $response = StepResponse::updateOrCreate(
                 ['attempt_id' => $attempt->id, 'activity_step_id' => $step->id],
                 ['value' => null, 'media_asset_id' => $mediaAssetId, 'is_correct' => null, 'answered_at' => now()],
             );
+
+            // Only reachable once the line above has committed the new
+            // association — a failure there (thrown before this point)
+            // leaves the previous response and its media untouched.
+            $this->retireReplacedMedia($previousMediaAssetId, $mediaAssetId);
+
+            return $response;
         }
 
         $result = $this->validator->validateValue($step, $value);
@@ -148,6 +169,40 @@ class AttemptService
         if ($step->isRequired()) {
             throw ValidationException::withMessages(['file' => 'Ficheiro em falta.']);
         }
+    }
+
+    /**
+     * AET-RC01 finding 8: a replaced or cleared recording/drawing used to
+     * leave its old MediaAsset row and storage file behind forever,
+     * referenced by nothing — ChildDataService::eraseCompletely() (which
+     * only ever looked at *current* step_responses) could never find it
+     * either. Called only after the StepResponse has already been
+     * repointed to the new media (or cleared), so this never runs unless
+     * the replacement itself already succeeded.
+     *
+     * Soft-deletes rather than hard-deletes (recoverable if ever needed)
+     * and only ever touches a clinical_response this exact method is
+     * replacing — never shared/instructional content, regardless of what
+     * id this is accidentally called with.
+     */
+    private function retireReplacedMedia(?int $previousMediaAssetId, ?int $newMediaAssetId): void
+    {
+        if ($previousMediaAssetId === null || $previousMediaAssetId === $newMediaAssetId) {
+            return;
+        }
+
+        $previous = MediaAsset::find($previousMediaAssetId);
+
+        if ($previous === null || $previous->purpose !== MediaPurpose::ClinicalResponse) {
+            return;
+        }
+
+        // Deleting an already-missing file is a no-op in Laravel's
+        // filesystem abstraction, not an error — safe to retry this whole
+        // method again later (e.g. from a reconciliation pass) if the
+        // process were ever interrupted between these two lines.
+        Storage::disk($previous->disk)->delete($previous->path);
+        $previous->delete();
     }
 
     private function assertAllRequiredStepsAnswered(Attempt $attempt): void
