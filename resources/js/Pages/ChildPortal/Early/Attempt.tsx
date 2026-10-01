@@ -35,6 +35,7 @@ export default function Attempt({ attempt, steps }: { attempt: { id: number }; s
 
             <div className="mt-6 w-full max-w-xs">
                 <StepInput
+                    key={step.id}
                     step={step}
                     saving={saving}
                     onValue={saveValue}

@@ -476,7 +476,94 @@ gravei, reabri o editor e confirmei que ambas continuavam marcadas;
 
 ## Achado 7 — Estado dos passos e ciclo de gravação
 
-Estado: em progresso.
+Estado: **Corrigido e verificado** (com uma limitação de ambiente
+explícita abaixo — o navegador embutido desta sessão não tem microfone
+real).
+
+**Reprodução (código antigo):** `Child/StepInput.tsx` era renderizado
+sem `key={step.id}` em nenhuma das três páginas de tentativa
+(`ChildPortal/{Early,Middle,Teen}/Attempt.tsx`) — ao mudar de passo, o
+React reutilizava a mesma instância do componente em vez de a
+desmontar/remontar, pelo que o `useState` interno do texto
+(`short_text`) e o estado interno de `RecordingInput` nunca reiniciavam.
+Confirmei isto ao vivo: sem a correção, escrever num passo de texto e
+avançar para outro passo de texto mostraria o mesmo texto no segundo
+passo. `RecordingInput`/`DrawingInput` também não tinham `useEffect` de
+limpeza nenhum — sair a meio de uma gravação não parava os `tracks` do
+`MediaStream`, e `URL.createObjectURL()` nunca era revogado. O prop
+`recorded` usava `step.value !== null` — mas `AttemptService::saveStep()`
+guarda sempre `value: null` para respostas com ficheiro (o ficheiro vive
+num `MediaAsset`, nunca em `value`), pelo que **nunca** detetava
+corretamente "já gravado" ao voltar a um passo já respondido.
+
+**Causa:** falta de `key` para forçar remontagem por passo; nenhum
+efeito de limpeza no desmonte; e uma dedução de estado (`recorded`)
+baseada no campo errado.
+
+**Correção:**
+- `key={step.id}` acrescentado ao `<StepInput>` nas três páginas de
+  tentativa — isola o estado por passo e, como efeito direto, também
+  **recupera** a resposta persistida ao voltar a um passo (o estado
+  antigo do componente desaparece, o novo é inicializado a partir do
+  `step` atual, que já vem do servidor com o valor certo).
+- `recorded` passa a usar `step.answered` em vez de `step.value !== null`.
+- Novo campo `response_media_url` (`AttemptService::serializeSteps()`) —
+  URL assinada do `MediaAsset` já guardado para aquele passo, quando
+  existe. `RecordingInput`/`DrawingInput` mostram-no como pré-visualização
+  ao regressar a um passo de gravação/desenho já respondido, em vez de só
+  um texto "enviada ✓".
+- `useEffect` de limpeza em `RecordingInput`: ao desmontar, para todos os
+  `tracks` do stream ainda ativo, para o `MediaRecorder` se ainda estiver
+  a gravar, e revoga qualquer `URL.createObjectURL()` pendente.
+- `mountedRef`: se a promessa de `getUserMedia()` resolver depois de o
+  componente já ter sido desmontado (a criança já saiu do passo enquanto
+  o pedido de permissão estava aberto), os `tracks` do stream resultante
+  são parados imediatamente e nenhum `setState` é chamado.
+- Seleção de formato: `pickRecorderFormat()` tenta
+  `audio/webm`→`audio/mp4`→`audio/ogg` (ou o equivalente de vídeo) via
+  `MediaRecorder.isTypeSupported()`, em vez de assumir sempre o
+  comportamento por omissão do browser; a extensão do ficheiro enviado
+  passa a corresponder ao formato realmente escolhido, não um `.webm`
+  fixo.
+- Botões "Enviar"/"Repetir"/"Guardar desenho" passam a desativar-se
+  enquanto `saving` está ativo, e um `sent` local impede um segundo
+  envio antes de o pedido em curso terminar.
+
+**Teste de regressão:** `tests/Feature/StepStateSerializationTest.php`
+(2 testes, backend) — confirma que `answered` é `true` e
+`response_media_url` aponta para `/media/...` mesmo com `value: null`
+para um passo de gravação já respondido; e que um passo nunca respondido
+não expõe nenhum `response_media_url`. O isolamento de estado em si
+(React) não é testável por PHPUnit — verificado ao vivo, abaixo.
+
+**Verificado ao vivo no browser** (três passos: texto, texto, gravação de
+voz, nas experiências 3–6 e 7–13):
+- Escrevi "Resposta do passo A" no primeiro passo de texto, avancei — o
+  segundo passo de texto mostrou a `<textarea>` **vazia**, não o texto do
+  primeiro (confirma o isolamento de estado).
+- Mudei a experiência visual da mesma criança para 7–13 (para ter o
+  botão "Voltar", que a experiência 3–6 não mostra) e, a partir do passo
+  de gravação, cliquei "Voltar" duas vezes: o passo de texto 2 mostrou
+  "Resposta B" e o passo de texto 1 mostrou "Resposta do passo A" — a
+  resposta certa recuperada em cada um, não vazia nem trocada.
+- Submeter com o passo de gravação (obrigatório) por responder mostrou
+  "Ainda há passos obrigatórios por responder." na própria interface da
+  criança — confirma ao vivo o comportamento do achado 6, não só por
+  teste automático.
+- Cliquei "Gravar" sem microfone disponível: a mensagem de erro
+  "Não foi possível aceder ao microfone..." apareceu corretamente, sem
+  nenhum erro JavaScript não tratado, e o botão "Gravar" continuou
+  disponível para tentar de novo.
+
+**Limitação explícita**: o navegador embutido do Claude Code usado nesta
+sessão não tem um microfone ou câmara reais disponíveis — não foi
+possível verificar ao vivo uma gravação bem-sucedida de fim a fim (pedir
+permissão → gravar → pré-visualizar → enviar), nem confirmar
+visualmente que os `tracks` de um `getUserMedia()` real param mesmo ao
+sair a meio de uma gravação (só o código de limpeza foi escrito e
+revisto, não observado a correr com um stream real). Recomendo esta verificação
+específica num browser com acesso a dispositivo real antes de considerar
+o achado 7 totalmente fechado.
 
 ## Achado 8 — Propriedade e limpeza de ficheiros
 
