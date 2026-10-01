@@ -46,7 +46,7 @@ class ChildDataService
                 'type' => $c->type, 'text_version' => $c->text_version, 'granted_by' => $c->grantedBy->name,
                 'granted_at' => $c->granted_at, 'revoked_at' => $c->revoked_at,
             ]),
-            'device_associations' => $child->deviceAssociations->map->only(['device_identifier', 'status', 'expires_at', 'last_used_at', 'revoked_at']),
+            'device_associations' => $child->deviceAssociations->map->only(['device_identifier', 'status', 'activated_at', 'expires_at', 'session_expires_at', 'last_used_at', 'revoked_at']),
             'clinical_notes' => $child->clinicalNotes->map(fn ($n) => [
                 'author' => $n->author->name, 'body' => $n->body, 'created_at' => $n->created_at,
             ]),
@@ -75,30 +75,43 @@ class ChildDataService
      * attempts, step_responses, evaluations, clinical_notes, consent_records,
      * device_associations, professional_assignments, guardian_relationships;
      * see the cascadeOnDelete() constraints in database/migrations).
+     *
+     * AET-RC01 finding 8: this used to find media only via *current*
+     * step_responses.media_asset_id — a recording the child re-recorded
+     * (replaced) was never referenced there anymore, so it survived
+     * "complete" erasure untouched, both in the database and on disk.
+     * Looks up by ownership (MediaAsset.owner_child_profile_id, added
+     * alongside the achado 1 fix) instead, which covers every version a
+     * child ever produced, not just whichever one a step currently points
+     * to — while still never touching another child's media or shared
+     * instructional content (owner_child_profile_id is only ever set on a
+     * clinical_response, see AttemptService::storeRecording/storeDrawing).
      */
     public function eraseCompletely(ChildProfile $child): void
     {
-        DB::transaction(function () use ($child) {
-            $mediaIds = MediaAsset::query()
-                ->whereIn('id', function ($query) use ($child) {
-                    $query->select('media_asset_id')
-                        ->from('step_responses')
-                        ->whereIn('attempt_id', function ($sub) use ($child) {
-                            $sub->select('attempts.id')
-                                ->from('attempts')
-                                ->join('assignments', 'assignments.id', '=', 'attempts.assignment_id')
-                                ->where('assignments.child_profile_id', $child->id);
-                        })
-                        ->whereNotNull('media_asset_id');
-                })
-                ->get(['id', 'disk', 'path']);
+        // Captured before the DB rows are gone — a storage delete can't
+        // be rolled back if the transaction below fails afterwards, so it
+        // must only ever run *after* that transaction has committed, using
+        // disk/path values read while the rows still existed.
+        $mediaToDelete = MediaAsset::withTrashed()
+            ->where('owner_child_profile_id', $child->id)
+            ->get(['id', 'disk', 'path']);
 
-            foreach ($mediaIds as $media) {
-                Storage::disk($media->disk)->delete($media->path);
-            }
-            MediaAsset::whereIn('id', $mediaIds->pluck('id'))->delete();
-
+        DB::transaction(function () use ($child, $mediaToDelete) {
+            MediaAsset::withTrashed()->whereIn('id', $mediaToDelete->pluck('id'))->forceDelete();
             $child->forceDelete();
         });
+
+        foreach ($mediaToDelete as $media) {
+            // A failed delete here is logged, not thrown — the database
+            // state is already final and correct at this point; a
+            // leftover file is a cleanup task, not a reason to leave the
+            // whole erasure looking like it failed when it didn't.
+            try {
+                Storage::disk($media->disk)->delete($media->path);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
     }
 }

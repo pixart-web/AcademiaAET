@@ -24,8 +24,17 @@ info:
 
     A token is revoked via its own kind's `.../auth/logout`, which deletes
     the current Sanctum token row. Device revocation (staff-initiated, from
-    the web portal) independently invalidates every token tied to that
-    device's child at the `DeviceAssociation` level.
+    the web portal) independently invalidates, on its very next request,
+    any token or web session tied to *that specific device* — never other
+    devices the same child may also be paired with. Every child-scoped
+    request re-checks the originating `DeviceAssociation`'s status on each
+    call (AET-RC01 finding 2); a token minted before this check existed has
+    no way to prove which device it belongs to and is treated as invalid,
+    not grandfathered in. The one-time activation code + PIN can likewise
+    never be replayed after a device is paired (AET-RC01 finding 3) — a
+    second `/child/device/activate` call with the same code always fails,
+    even before the activation window (`expires_at`) would otherwise have
+    passed.
 
     Clinical notes (`clinical_notes` table) are never reachable from any
     child-scoped endpoint in this contract — feedback endpoints only ever
@@ -394,6 +403,11 @@ components:
 
     Step:
       type: object
+      description: >-
+        AET-RC01 finding 6: response_config here is already the
+        child-safe view — it never includes `correct` (the answer key),
+        which only ever appears in the staff-facing editor/preview
+        endpoints. Scoring happens exclusively server-side.
       properties:
         id: { type: integer }
         position: { type: integer }
@@ -405,10 +419,31 @@ components:
         response_config:
           type: object
           nullable: true
-          description: "e.g. { options: [...], correct: '...' } for choice types"
-        instruction_media_url: { type: string, nullable: true, description: Short-lived signed URL, ~15 min }
+          description: "e.g. { options: [...], max_length: 500 } — never includes `correct`"
+        required:
+          type: boolean
+          description: Whether this step must be answered before the attempt can be submitted. Absent/undefined in older clients should be treated as true.
+        instruction_media:
+          type: object
+          nullable: true
+          description: AET-RC01 finding 5 — replaces the old bare instruction_media_url string, which had no way to convey the media's type (a signed URL has no file extension to infer it from).
+          properties:
+            url: { type: string, description: Short-lived signed URL, ~15 min }
+            kind: { type: string, enum: [image, audio, video, document] }
+            mime_type: { type: string }
+            alt_text: { type: string, nullable: true }
+            transcript: { type: string, nullable: true }
         answered: { type: boolean }
         value: { nullable: true }
+        response_media_url:
+          type: string
+          nullable: true
+          description: >-
+            AET-RC01 finding 7: for a voice_recording/video_recording/drawing
+            step that already has a saved response, a short-lived signed URL
+            to play/view it back. `value` is always null for these response
+            types regardless of whether the step has been answered — check
+            `answered`, not `value`, to tell.
 
     Feedback:
       type: object

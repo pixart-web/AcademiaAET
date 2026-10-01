@@ -2,11 +2,18 @@ import ProfessionalLayout from '@/Layouts/ProfessionalLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
+interface ResponseConfig {
+    options?: string[];
+    correct?: string | string[];
+    required?: boolean;
+}
+
 interface StepForm {
     title: string;
     body: string;
     response_type: string;
-    response_config: { options?: string[]; correct?: string };
+    response_config: ResponseConfig;
+    instruction_media_asset_id: number | null;
 }
 
 interface ActivityData {
@@ -24,10 +31,25 @@ interface ActivityData {
             title: string | null;
             body: string | null;
             response_type: string;
-            response_config: { options?: string[]; correct?: string } | null;
+            response_config: ResponseConfig | null;
+            instruction_media_asset_id: number | null;
         }[];
     };
 }
+
+interface AvailableMedia {
+    id: number;
+    title: string;
+    kind: string;
+    alt_text: string | null;
+}
+
+const MEDIA_KIND_LABEL: Record<string, string> = {
+    image: 'Imagem',
+    audio: 'Áudio',
+    video: 'Vídeo',
+    document: 'Documento',
+};
 
 const RESPONSE_TYPE_LABEL: Record<string, string> = {
     single_choice: 'Escolha única',
@@ -39,9 +61,23 @@ const RESPONSE_TYPE_LABEL: Record<string, string> = {
     completion_confirmation: 'Confirmação de realização',
 };
 
-const emptyStep = (): StepForm => ({ title: '', body: '', response_type: 'single_choice', response_config: { options: ['', ''] } });
+const emptyStep = (): StepForm => ({
+    title: '',
+    body: '',
+    response_type: 'single_choice',
+    response_config: { options: ['', ''], required: true },
+    instruction_media_asset_id: null,
+});
 
-export default function Edit({ activity, responseTypes }: { activity: ActivityData | null; responseTypes: { value: string; label: string }[] }) {
+export default function Edit({
+    activity,
+    responseTypes,
+    availableMedia,
+}: {
+    activity: ActivityData | null;
+    responseTypes: { value: string; label: string }[];
+    availableMedia: AvailableMedia[];
+}) {
     const version = activity?.current_version;
 
     const { data, setData, post, put, processing, errors } = useForm({
@@ -56,7 +92,8 @@ export default function Edit({ activity, responseTypes }: { activity: ActivityDa
             title: s.title ?? '',
             body: s.body ?? '',
             response_type: s.response_type,
-            response_config: s.response_config ?? {},
+            response_config: { required: true, ...(s.response_config ?? {}) },
+            instruction_media_asset_id: s.instruction_media_asset_id,
         })) ?? [emptyStep()]) as StepForm[],
     });
 
@@ -229,33 +266,98 @@ export default function Edit({ activity, responseTypes }: { activity: ActivityDa
                                 />
                             </div>
 
+                            <div className="mt-3">
+                                <label className="block text-sm font-medium text-ink">Conteúdo de apoio (opcional)</label>
+                                <div className="mt-1 flex items-center gap-2">
+                                    <select
+                                        value={step.instruction_media_asset_id ?? ''}
+                                        onChange={(e) => updateStep(index, {
+                                            instruction_media_asset_id: e.target.value ? Number(e.target.value) : null,
+                                        })}
+                                        className="flex-1 rounded-shell border-border focus:border-accent focus:ring-accent"
+                                    >
+                                        <option value="">Nenhum</option>
+                                        {availableMedia.map((media) => (
+                                            <option key={media.id} value={media.id}>
+                                                {MEDIA_KIND_LABEL[media.kind] ?? media.kind} — {media.title}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {step.instruction_media_asset_id !== null && (
+                                        <button
+                                            type="button"
+                                            onClick={() => updateStep(index, { instruction_media_asset_id: null })}
+                                            className="text-sm text-danger"
+                                        >
+                                            Remover
+                                        </button>
+                                    )}
+                                </div>
+                                {availableMedia.length === 0 && (
+                                    <p className="mt-1 text-sm text-ink-muted">
+                                        Sem conteúdo didático disponível — carregue um em{' '}
+                                        <Link href={route('media.index')} className="text-accent underline">
+                                            Conteúdos
+                                        </Link>
+                                        .
+                                    </p>
+                                )}
+                            </div>
+
+                            <label className="mt-3 flex items-center gap-2 text-sm text-ink-muted">
+                                <input
+                                    type="checkbox"
+                                    checked={step.response_config.required ?? true}
+                                    onChange={(e) => updateStep(index, { response_config: { ...step.response_config, required: e.target.checked } })}
+                                />
+                                Obrigatório para submeter
+                            </label>
+
                             {(step.response_type === 'single_choice' || step.response_type === 'multiple_choice') && (
                                 <div className="mt-3 space-y-2">
-                                    <p className="text-sm text-ink-muted">Opções (defina a correta apenas para escolha única)</p>
-                                    {(step.response_config.options ?? []).map((option, optIndex) => (
-                                        <div key={optIndex} className="flex items-center gap-2">
-                                            <input
-                                                value={option}
-                                                onChange={(e) => {
-                                                    const options = [...(step.response_config.options ?? [])];
-                                                    options[optIndex] = e.target.value;
-                                                    updateStep(index, { response_config: { ...step.response_config, options } });
-                                                }}
-                                                className="flex-1 rounded-shell border-border focus:border-accent focus:ring-accent"
-                                            />
-                                            {step.response_type === 'single_choice' && (
+                                    <p className="text-sm text-ink-muted">
+                                        Opções {step.response_type === 'single_choice' ? '(marque a correta)' : '(marque todas as corretas)'}
+                                    </p>
+                                    {(step.response_config.options ?? []).map((option, optIndex) => {
+                                        const correctList = Array.isArray(step.response_config.correct)
+                                            ? step.response_config.correct
+                                            : step.response_config.correct
+                                              ? [step.response_config.correct]
+                                              : [];
+                                        const isCorrect = correctList.includes(option);
+
+                                        const toggleCorrect = () => {
+                                            if (step.response_type === 'single_choice') {
+                                                updateStep(index, { response_config: { ...step.response_config, correct: option } });
+                                                return;
+                                            }
+                                            const next = isCorrect ? correctList.filter((o) => o !== option) : [...correctList, option];
+                                            updateStep(index, { response_config: { ...step.response_config, correct: next } });
+                                        };
+
+                                        return (
+                                            <div key={optIndex} className="flex items-center gap-2">
+                                                <input
+                                                    value={option}
+                                                    onChange={(e) => {
+                                                        const options = [...(step.response_config.options ?? [])];
+                                                        options[optIndex] = e.target.value;
+                                                        updateStep(index, { response_config: { ...step.response_config, options } });
+                                                    }}
+                                                    className="flex-1 rounded-shell border-border focus:border-accent focus:ring-accent"
+                                                />
                                                 <label className="flex items-center gap-1 text-sm text-ink-muted">
                                                     <input
-                                                        type="radio"
+                                                        type={step.response_type === 'single_choice' ? 'radio' : 'checkbox'}
                                                         name={`correct-${index}`}
-                                                        checked={step.response_config.correct === option}
-                                                        onChange={() => updateStep(index, { response_config: { ...step.response_config, correct: option } })}
+                                                        checked={isCorrect}
+                                                        onChange={toggleCorrect}
                                                     />
                                                     correta
                                                 </label>
-                                            )}
-                                        </div>
-                                    ))}
+                                            </div>
+                                        );
+                                    })}
                                     <button
                                         type="button"
                                         onClick={() => updateStep(index, {

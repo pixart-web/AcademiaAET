@@ -1,0 +1,111 @@
+name: CI
+
+# AET-RC01: installs strictly from the committed lockfiles (composer.lock,
+# package-lock.json) — never a bare `composer update`/`npm install` that
+# could silently change dependency versions. PHP/Node versions here match
+# what this project has actually been developed and tested against (see
+# composer.json's "php": "^8.3" floor and vite's node engines range); no
+# version was chosen without checking it's one this codebase already runs
+# on. Every credential below is a fixed, disposable, non-production value
+# used only inside this workflow's own ephemeral Postgres service.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend-sqlite:
+    name: Backend tests (SQLite, fast)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, pdo_pgsql, pcntl, posix, gd, bcmath
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Check code style (Pint)
+        run: vendor/bin/pint --test --format=agent
+
+      - name: Run test suite (SQLite)
+        run: php artisan test --compact
+
+  backend-postgres:
+    name: Backend tests (PostgreSQL, full — includes real concurrency)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: academia_aet
+          POSTGRES_USER: academia_aet
+          POSTGRES_PASSWORD: academia_aet
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U academia_aet -d academia_aet"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, pdo_pgsql, pcntl, posix, gd, bcmath
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      # phpunit.xml pins DB_CONNECTION=sqlite for the default fast suite —
+      # phpunit.pgsql.xml is otherwise identical but points at this job's
+      # Postgres service instead, so the *entire* suite (not just the
+      # dedicated concurrency test) runs against the same database engine
+      # as development/production, per the audit's own request. The
+      # RefreshDatabase trait migrates this connection itself; no separate
+      # `artisan migrate` step is needed.
+      - name: Run full test suite against PostgreSQL
+        run: vendor/bin/phpunit -c phpunit.pgsql.xml
+
+  frontend:
+    name: TypeScript check and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
