@@ -31,6 +31,17 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Set up Node (Inertia feature tests need the Vite manifest)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build frontend assets
+        run: |
+          npm install -g npm@11
+          npm ci
+          npm run build
+
       - name: Copy environment file
         run: cp .env.example .env
 
@@ -72,6 +83,17 @@ jobs:
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Set up Node (Inertia feature tests need the Vite manifest)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build frontend assets
+        run: |
+          npm install -g npm@11
+          npm ci
+          npm run build
 
       - name: Copy environment file
         run: cp .env.example .env
