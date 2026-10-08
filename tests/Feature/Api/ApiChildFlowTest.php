@@ -102,9 +102,15 @@ class ApiChildFlowTest extends TestCase
         ])->json('token');
         $auth = ['Authorization' => "Bearer {$token}"];
 
-        $attemptId = $this->withHeaders($auth)
+        $start = $this->withHeaders($auth)
             ->postJson("/api/v1/child/assignments/{$assignment->id}/start")
-            ->json('attempt.id');
+            ->json();
+        $attemptId = $start['attempt']['id'];
+        $stepId = $start['steps'][0]['id'];
+
+        $this->withHeaders($auth)
+            ->postJson("/api/v1/child/attempts/{$attemptId}/steps/{$stepId}", ['value' => true])
+            ->assertOk();
 
         $this->withHeaders($auth)->postJson("/api/v1/child/attempts/{$attemptId}/submit")->assertOk();
         $this->withHeaders($auth)->postJson("/api/v1/child/attempts/{$attemptId}/submit")->assertOk();
@@ -116,7 +122,12 @@ class ApiChildFlowTest extends TestCase
     {
         $assignment = $this->makeAssignment();
         $otherChild = ChildProfile::factory()->for($assignment->childProfile->organization)->create();
-        $token = $otherChild->createToken('phpunit', ['child'])->plainTextToken;
+        $pro = $assignment->assignedBy;
+        $this->deviceFor($otherChild, $pro, 'OTHERCHILD', '4321');
+
+        $token = $this->postJson('/api/v1/child/device/activate', [
+            'device_code' => 'OTHERCHILD', 'pin' => '4321', 'device_name' => 'phpunit',
+        ])->json('token');
 
         $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson("/api/v1/child/assignments/{$assignment->id}/start")
@@ -158,6 +169,27 @@ class ApiChildFlowTest extends TestCase
             'device_token' => 'not-the-real-token',
             'pin' => '7788',
             'device_name' => 'phpunit-2',
+        ])->assertUnprocessable();
+    }
+
+    /**
+     * AET-RC01 finding 3: the same one-time activation code + PIN could be
+     * replayed through the API exactly as through the web portal, since
+     * both go through DeviceAuthService::activate() — same bug, same fix.
+     */
+    public function test_reactivating_via_the_api_is_rejected(): void
+    {
+        $assignment = $this->makeAssignment();
+        $child = $assignment->childProfile;
+        $pro = $assignment->assignedBy;
+        $this->deviceFor($child, $pro, 'APIFLOW05', '9900');
+
+        $this->postJson('/api/v1/child/device/activate', [
+            'device_code' => 'APIFLOW05', 'pin' => '9900', 'device_name' => 'phpunit',
+        ])->assertOk();
+
+        $this->postJson('/api/v1/child/device/activate', [
+            'device_code' => 'APIFLOW05', 'pin' => '9900', 'device_name' => 'attacker-replay',
         ])->assertUnprocessable();
     }
 }

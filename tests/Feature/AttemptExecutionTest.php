@@ -46,12 +46,12 @@ class AttemptExecutionTest extends TestCase
         ]);
         $child = $assignment->childProfile;
 
-        $this->actingAs($child, 'child')->post("/crianca/atribuicoes/{$assignment->id}/iniciar");
+        $this->actingAsChild($child)->post("/crianca/atribuicoes/{$assignment->id}/iniciar");
         $attempt = Attempt::where('assignment_id', $assignment->id)->firstOrFail();
 
         $firstStepId = $attempt->assignment->activityVersion->steps()->orderBy('position')->first()->id;
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->post("/crianca/tentativas/{$attempt->id}/passos/{$firstStepId}", ['value' => 'primeira resposta'])
             ->assertRedirect();
 
@@ -63,10 +63,10 @@ class AttemptExecutionTest extends TestCase
         // A second "start" (e.g. the child re-opens the app) must reuse the
         // same in-progress attempt, not create a new one that would lose
         // the first answer.
-        $this->actingAs($child, 'child')->post("/crianca/atribuicoes/{$assignment->id}/iniciar");
+        $this->actingAsChild($child)->post("/crianca/atribuicoes/{$assignment->id}/iniciar");
         $this->assertSame(1, Attempt::where('assignment_id', $assignment->id)->count());
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->get("/crianca/tentativas/{$attempt->id}")
             ->assertInertia(fn (AssertableJson $page) => $page
                 ->where('steps.0.answered', true)
@@ -82,13 +82,13 @@ class AttemptExecutionTest extends TestCase
         ]);
         $child = $assignment->childProfile;
 
-        $this->actingAs($child, 'child')->post("/crianca/atribuicoes/{$assignment->id}/iniciar");
+        $this->actingAsChild($child)->post("/crianca/atribuicoes/{$assignment->id}/iniciar");
         $attempt = Attempt::where('assignment_id', $assignment->id)->firstOrFail();
         $stepId = $attempt->assignment->activityVersion->steps()->first()->id;
 
         $badFile = UploadedFile::fake()->create('nota.txt', 10, 'text/plain');
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->post("/crianca/tentativas/{$attempt->id}/passos/{$stepId}", ['file' => $badFile])
             ->assertSessionHasErrors('file');
 

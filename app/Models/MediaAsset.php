@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\MediaKind;
+use App\Enums\MediaPurpose;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,8 +12,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'organization_id', 'uploaded_by_user_id', 'disk', 'path', 'mime_type', 'kind',
-    'title', 'description', 'alt_text', 'transcript', 'duration_seconds', 'size_bytes',
-    'status', 'license', 'attribution',
+    'purpose', 'owner_child_profile_id', 'title', 'description', 'alt_text', 'transcript',
+    'duration_seconds', 'size_bytes', 'status', 'license', 'attribution',
 ])]
 class MediaAsset extends Model
 {
@@ -22,6 +23,7 @@ class MediaAsset extends Model
     {
         return [
             'kind' => MediaKind::class,
+            'purpose' => MediaPurpose::class,
         ];
     }
 
@@ -35,8 +37,23 @@ class MediaAsset extends Model
         return $this->belongsTo(User::class, 'uploaded_by_user_id');
     }
 
+    public function ownerChildProfile(): BelongsTo
+    {
+        return $this->belongsTo(ChildProfile::class, 'owner_child_profile_id');
+    }
+
     public function hasTextAlternative(): bool
     {
         return filled($this->alt_text) || filled($this->transcript);
+    }
+
+    public function isInstructional(): bool
+    {
+        return $this->purpose === MediaPurpose::Instructional;
+    }
+
+    public function isClinicalResponse(): bool
+    {
+        return $this->purpose === MediaPurpose::ClinicalResponse;
     }
 }

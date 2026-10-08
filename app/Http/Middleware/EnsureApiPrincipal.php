@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\ChildProfile;
+use App\Models\DeviceAssociation;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
@@ -25,6 +26,23 @@ class EnsureApiPrincipal
 
         if ($expected === User::class && ! $user->isActive()) {
             abort(403, 'Conta desativada.');
+        }
+
+        if ($expected === ChildProfile::class) {
+            // AET-RC01 finding 2: a token survived its device being revoked
+            // or expiring — re-checked on every request, same as the web
+            // session guard (EnsureChildDeviceIsActive). A token minted
+            // before the "device:{id}" ability existed has no way to prove
+            // which device it belongs to, so it is never trusted by
+            // default (idFromTokenAbilities() returns null for it, and
+            // resolveActiveFor() treats null as invalid).
+            $token = $user->currentAccessToken();
+            $deviceId = $token ? DeviceAssociation::idFromTokenAbilities($token->abilities ?? []) : null;
+
+            if (! $user->isActive() || DeviceAssociation::resolveActiveFor($user, $deviceId) === null) {
+                $token?->delete();
+                abort(401, 'Este acesso já não está disponível.');
+            }
         }
 
         return $next($request);

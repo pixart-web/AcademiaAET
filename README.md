@@ -90,11 +90,17 @@ gerados dinamicamente (nunca fixos) — gere um em
 ### Testes
 
 ```bash
-php artisan test              # suite completa (backend)
-php artisan test --filter=X   # um ficheiro/teste específico
-npm run build                 # build de produção do frontend + verificação TypeScript
-vendor/bin/pint                # formatação PHP
+php artisan test                                # suite completa (backend, SQLite — rápida)
+php artisan test --filter=X                     # um ficheiro/teste específico
+vendor/bin/phpunit -c phpunit.pgsql.xml         # a mesma suite contra PostgreSQL real (requer docker-compose up -d pgsql)
+npx tsc --noEmit                                # verificação de tipos TypeScript
+npm run build                                   # build de produção do frontend
+vendor/bin/pint                                 # formatação PHP
+php artisan media:reconcile-orphans [--check-files]  # relatório (nunca apaga nada) de media sem finalidade/propriedade determinável
 ```
+
+CI (`.github/workflows/ci.yml`) corre estes mesmos passos automaticamente
+em cada push/PR, contra SQLite e contra um serviço PostgreSQL real.
 
 Ver `docs/delivery-report.md` para o resultado real da última execução e o
 que ficou por testar (browsers reais, dispositivos físicos, leitores de
