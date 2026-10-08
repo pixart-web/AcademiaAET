@@ -137,3 +137,48 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  e2e:
+    name: Browser journey (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, pdo_sqlite, gd, bcmath
+          coverage: none
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies and build
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress
+          npm install -g npm@11
+          npm ci
+          npm run build
+
+      - name: Prepare a throwaway SQLite app with the fictional demo seed
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          touch database/e2e.sqlite
+          {
+            echo "APP_ENV=local"
+            echo "DB_CONNECTION=sqlite"
+            echo "DB_DATABASE=$PWD/database/e2e.sqlite"
+            echo "SESSION_DRIVER=file"
+            echo "CACHE_STORE=file"
+            echo "QUEUE_CONNECTION=sync"
+          } >> .env
+          php artisan migrate --seed --force
+
+      - name: Install browser and run the journey
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test
