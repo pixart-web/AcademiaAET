@@ -28,7 +28,7 @@ export default function Attempt({ attempt, steps }: { attempt: { id: number }; s
             {step.instruction_media && <MediaPreview media={step.instruction_media} />}
 
             {error && (
-                <p role="alert" className="mt-4 rounded-shell bg-danger/10 px-4 py-2 text-base text-danger">
+                <p role="alert" className="mt-4 rounded-shell bg-danger-soft px-4 py-2 text-base text-danger">
                     {error}
                 </p>
             )}

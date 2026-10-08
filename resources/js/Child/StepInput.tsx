@@ -309,7 +309,7 @@ function RecordingInput({
             )}
 
             {status === 'error' && error && (
-                <p role="alert" className="rounded-shell bg-danger/10 px-3 py-2 text-sm text-danger">
+                <p role="alert" className="rounded-shell bg-danger-soft px-3 py-2 text-sm text-danger">
                     {error}
                 </p>
             )}

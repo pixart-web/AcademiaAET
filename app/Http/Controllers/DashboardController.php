@@ -30,13 +30,19 @@ class DashboardController extends Controller
         $inProgress = Assignment::query()
             ->whereIn('child_profile_id', $childIds)
             ->whereIn('status', [AssignmentStatus::Assigned, AssignmentStatus::Started])
-            ->with(['childProfile', 'activityVersion.activity'])
+            ->with(['childProfile', 'activityVersion.activity', 'activityVersion.steps:id,activity_version_id', 'attempts' => fn ($q) => $q->where('status', 'in_progress')->withCount(['stepResponses as answered_count' => fn ($r) => $r->whereNotNull('answered_at')])])
             ->orderBy('due_at')
             ->limit(10)
             ->get()
             ->map(fn (Assignment $a) => [
                 ...$a->toArray(),
                 'is_overdue' => $a->isOverdue(),
+                // Real progress only: answered steps of the attempt in progress
+                // over the version's steps — 0 of N before anything is started.
+                'progress' => [
+                    'answered' => (int) ($a->attempts->first()?->answered_count ?? 0),
+                    'total' => $a->activityVersion->steps->count(),
+                ],
             ]);
 
         return Inertia::render('Dashboard', [
