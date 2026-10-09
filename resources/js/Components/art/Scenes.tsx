@@ -46,7 +46,7 @@ export function ForestScene({ className = '' }: { className?: string }) {
 /** 7–13: landscape with a stream, stepping stones, mountains and a treehouse. */
 export function TrailScene({ className = '' }: { className?: string }) {
     return (
-        <svg viewBox="0 0 400 260" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false" className={className}>
+        <svg viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false" className={className}>
             <defs>
                 <linearGradient id="trail-sky" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0" stopColor="#9fd3cf" />
@@ -78,7 +78,7 @@ export function TrailScene({ className = '' }: { className?: string }) {
                 <ellipse cx="236" cy="230" rx="22" ry="8" />
             </g>
             {/* signposts */}
-            <g>
+            <g transform="translate(212 -4)">
                 <rect x="40" y="150" width="6" height="64" rx="2" fill="#8a6a4a" />
                 <rect x="20" y="152" width="46" height="12" rx="3" fill="#d9b080" />
                 <rect x="28" y="168" width="44" height="12" rx="3" fill="#e2c093" />

@@ -27,7 +27,7 @@ export default function ChildEntry({ deviceActivated }: { deviceActivated: boole
             <Head title="Entrar" />
 
             <div className="relative h-44 overflow-hidden sm:h-56">
-                <ForestScene className="absolute inset-0 h-full w-full" />
+                <ForestScene className="absolute inset-0 mx-auto h-full w-full max-w-4xl [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]" />
             </div>
             <div className="relative z-10 -mt-20 flex justify-center">
                 <Mascot state="welcome" size={130} />

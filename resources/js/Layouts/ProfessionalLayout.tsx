@@ -114,7 +114,7 @@ export default function ProfessionalLayout({
                         <Logo />
                     </Link>
                     {nav}
-                    <Sprig className="pointer-events-none absolute -bottom-4 -left-3 opacity-80" size={110} />
+                    <Sprig className="pointer-events-none absolute -bottom-6 -right-4 opacity-70" size={120} flip />
                     <div className="relative mt-auto rounded-shell bg-bg-alt/70 px-3 py-2 text-xs text-ink-muted">
                         {ROLE_LABEL[user.role] ?? user.role}
                     </div>

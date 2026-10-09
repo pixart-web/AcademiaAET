@@ -20,7 +20,7 @@ export default function EarlyLayout({ children, mascot = 'welcome' }: PropsWithC
     return (
         <div className="min-h-screen bg-bg pb-[env(safe-area-inset-bottom)] text-ink" data-shell="early">
             <div className="relative h-52 overflow-hidden sm:h-64">
-                <ForestScene className="absolute inset-0 h-full w-full" />
+                <ForestScene className="absolute inset-0 mx-auto h-full w-full max-w-4xl [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]" />
                 <button
                     onClick={logout}
                     aria-label="Sair (para um adulto)"
@@ -30,12 +30,12 @@ export default function EarlyLayout({ children, mascot = 'welcome' }: PropsWithC
                 </button>
             </div>
 
-            <div className="relative z-10 -mt-24 flex justify-center">
+            <div className="relative z-20 -mt-24 flex justify-center">
                 <Mascot state={mascot} size={150} className="drop-shadow-sm" />
             </div>
 
-            <main className="relative z-10 mx-auto -mt-4 w-full max-w-lg px-4 pb-12">
-                <div className="aet-rise flex flex-col items-center rounded-shell bg-surface px-5 py-8 text-center shadow-soft sm:px-8">{children}</div>
+            <main className="relative z-10 mx-auto -mt-6 w-full max-w-lg px-4 pb-12">
+                <div className="aet-rise flex flex-col items-center rounded-shell bg-surface px-5 pb-8 pt-10 text-center shadow-soft sm:px-8">{children}</div>
             </main>
         </div>
     );

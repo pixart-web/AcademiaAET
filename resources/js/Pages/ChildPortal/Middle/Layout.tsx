@@ -22,8 +22,8 @@ export default function MiddleLayout({
 
     return (
         <div className="min-h-screen bg-bg pb-[env(safe-area-inset-bottom)] text-ink" data-shell="middle">
-            <div className={`relative overflow-hidden ${compact ? 'h-28 sm:h-40' : 'h-72 sm:h-96'}`}>
-                <TrailScene className="absolute inset-0 h-full w-full" />
+            <div className={`relative overflow-hidden bg-[linear-gradient(to_bottom,#9fd3cf_0%,#e9f1dc_50%,#a8d6d8_100%)] ${compact ? 'h-28 sm:h-40' : 'h-72 sm:h-96'}`}>
+                <TrailScene className="absolute inset-0 mx-auto h-full w-full max-w-4xl [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]" />
                 <button
                     onClick={logout}
                     aria-label="Trocar de perfil (sair)"

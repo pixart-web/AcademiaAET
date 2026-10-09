@@ -1,6 +1,11 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
 
+// Token colours are CSS variables (they change per [data-shell]), which
+// Tailwind can't alpha-blend on its own, so `bg-surface/90` & co. would be
+// silently dropped. color-mix lets every `/NN` opacity modifier keep working.
+const token = (name) => `color-mix(in srgb, var(--color-${name}) calc(<alpha-value> * 100%), transparent)`;
+
 /** @type {import('tailwindcss').Config} */
 export default {
     content: [
@@ -18,25 +23,25 @@ export default {
                 display: ['var(--font-display)', ...defaultTheme.fontFamily.serif],
             },
             colors: {
-                bg: 'var(--color-bg)',
-                surface: 'var(--color-surface)',
-                ink: 'var(--color-ink)',
-                'ink-muted': 'var(--color-ink-muted)',
-                border: 'var(--color-border)',
+                bg: token('bg'),
+                surface: token('surface'),
+                ink: token('ink'),
+                'ink-muted': token('ink-muted'),
+                border: token('border'),
                 accent: {
-                    DEFAULT: 'var(--color-accent)',
-                    ink: 'var(--color-accent-ink)',
-                    soft: 'var(--color-accent-soft)',
+                    DEFAULT: token('accent'),
+                    ink: token('accent-ink'),
+                    soft: token('accent-soft'),
                 },
-                'bg-alt': 'var(--color-bg-alt)',
+                'bg-alt': token('bg-alt'),
                 highlight: {
-                    DEFAULT: 'var(--color-highlight)',
-                    ink: 'var(--color-highlight-ink)',
+                    DEFAULT: token('highlight'),
+                    ink: token('highlight-ink'),
                 },
-                success: { DEFAULT: 'var(--color-success)', soft: 'var(--color-success-soft)' },
-                warning: { DEFAULT: 'var(--color-warning)', soft: 'var(--color-warning-soft)' },
-                danger: { DEFAULT: 'var(--color-danger)', soft: 'var(--color-danger-soft)' },
-                info: { DEFAULT: 'var(--color-info)', soft: 'var(--color-info-soft)' },
+                success: { DEFAULT: token('success'), soft: token('success-soft') },
+                warning: { DEFAULT: token('warning'), soft: token('warning-soft') },
+                danger: { DEFAULT: token('danger'), soft: token('danger-soft') },
+                info: { DEFAULT: token('info'), soft: token('info-soft') },
             },
             borderRadius: {
                 shell: 'var(--shell-radius)',
