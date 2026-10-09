@@ -1,4 +1,6 @@
+import Logo from '@/Components/art/Logo';
 import Mascot from '@/Components/Mascot';
+import { ForestScene } from '@/Components/art/Scenes';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler, useEffect } from 'react';
 
@@ -21,14 +23,21 @@ export default function ChildEntry({ deviceActivated }: { deviceActivated: boole
     };
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-bg px-4 text-center" data-shell="middle">
+        <div className="min-h-screen bg-bg text-center text-ink" data-shell="middle">
             <Head title="Entrar" />
 
-            <Mascot state="welcome" size={110} />
+            <div className="relative h-44 overflow-hidden sm:h-56">
+                <ForestScene className="absolute inset-0 h-full w-full" />
+            </div>
+            <div className="relative z-10 -mt-20 flex justify-center">
+                <Mascot state="welcome" size={130} />
+            </div>
+            <div className="mt-2 flex flex-col items-center px-4 pb-12">
+            <Logo size="md" />
 
             {deviceActivated ? (
                 <>
-                    <h1 className="mt-6 text-2xl font-semibold text-ink">Olá! Introduz o teu PIN</h1>
+                    <h1 className="mt-6 text-2xl font-extrabold text-ink">Olá! Introduz o teu PIN</h1>
                     <form onSubmit={submitUnlock} className="mt-6 w-full max-w-xs space-y-4">
                         <input
                             inputMode="numeric"
@@ -43,7 +52,7 @@ export default function ChildEntry({ deviceActivated }: { deviceActivated: boole
                         <button
                             type="submit"
                             disabled={unlockForm.processing}
-                            className="w-full rounded-shell bg-accent py-3 text-lg font-medium text-accent-ink disabled:opacity-60"
+                            className="h-14 w-full rounded-shell bg-accent text-lg font-extrabold text-accent-ink shadow-lift disabled:opacity-60"
                         >
                             Entrar
                         </button>
@@ -51,7 +60,7 @@ export default function ChildEntry({ deviceActivated }: { deviceActivated: boole
                 </>
             ) : (
                 <>
-                    <h1 className="mt-6 text-2xl font-semibold text-ink">Bem-vindo à Academia AET</h1>
+                    <h1 className="mt-6 text-2xl font-extrabold text-ink">Bem-vindo à Academia AET</h1>
                     <p className="mt-1 text-sm text-ink-muted">Peça a um adulto para introduzir o código do dispositivo.</p>
                     <form onSubmit={submitActivate} className="mt-6 w-full max-w-xs space-y-4">
                         <input
@@ -74,13 +83,14 @@ export default function ChildEntry({ deviceActivated }: { deviceActivated: boole
                         <button
                             type="submit"
                             disabled={activateForm.processing}
-                            className="w-full rounded-shell bg-accent py-3 text-lg font-medium text-accent-ink disabled:opacity-60"
+                            className="h-14 w-full rounded-shell bg-accent text-lg font-extrabold text-accent-ink shadow-lift disabled:opacity-60"
                         >
                             Associar dispositivo
                         </button>
                     </form>
                 </>
             )}
+            </div>
         </div>
     );
 }

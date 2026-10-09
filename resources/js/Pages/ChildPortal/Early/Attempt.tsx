@@ -1,4 +1,4 @@
-import Mascot from '@/Components/Mascot';
+import Icon from '@/Components/Icon';
 import SpeakButton from '@/Child/SpeakButton';
 import StepInput, { MediaPreview } from '@/Child/StepInput';
 import { useAttempt } from '@/Child/useAttempt';
@@ -15,14 +15,12 @@ export default function Attempt({ attempt, steps }: { attempt: { id: number }; s
     const instructionText = [step.title, step.body].filter(Boolean).join('. ');
 
     return (
-        <EarlyLayout>
-            <Mascot state="explain" size={96} />
-
-            {step.title && <h1 className="mt-4 text-2xl font-bold text-ink">{step.title}</h1>}
+        <EarlyLayout mascot="explain">
+            {step.title && <h1 className="text-2xl font-extrabold text-ink">{step.title}</h1>}
             {step.body && <p className="mt-2 text-lg text-ink-muted">{step.body}</p>}
 
-            <div className="mt-3 flex justify-center gap-2">
-                <SpeakButton text={instructionText} label="Ouvir de novo" />
+            <div className="mt-5 flex justify-center gap-2">
+                <SpeakButton text={instructionText} label="Ouvir" variant="big" />
             </div>
 
             {step.instruction_media && <MediaPreview media={step.instruction_media} />}
@@ -47,9 +45,10 @@ export default function Attempt({ attempt, steps }: { attempt: { id: number }; s
             <button
                 onClick={goNext}
                 disabled={saving}
-                className="mt-8 w-full max-w-xs rounded-shell bg-accent px-8 py-5 text-xl font-bold text-accent-ink disabled:opacity-60"
+                className="mt-8 flex min-h-[4rem] w-full max-w-xs items-center justify-center gap-2 rounded-shell bg-accent px-8 py-4 text-xl font-extrabold text-accent-ink shadow-lift disabled:opacity-60"
             >
-                {isLast ? 'Terminar' : 'Próximo'}
+                {isLast ? 'Terminar' : 'Continuar'}
+                <Icon name={isLast ? 'check' : 'arrowRight'} size={26} />
             </button>
         </EarlyLayout>
     );

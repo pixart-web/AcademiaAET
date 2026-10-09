@@ -1,39 +1,42 @@
-import Mascot from '@/Components/Mascot';
 import { useChildIdentity } from '@/Child/useChildIdentity';
-import { Link } from '@inertiajs/react';
-import { PropsWithChildren, useEffect } from 'react';
+import Icon from '@/Components/Icon';
+import { TrailScene } from '@/Components/art/Scenes';
+import { PropsWithChildren, ReactNode, useEffect } from 'react';
 
 /**
- * 7–13 years: a sense of discovery and a mission list, more autonomy than
- * the 3–6 shell but still no public ranking, no comparison between
- * children, no streak-loss pressure — see master prompt constraints.
+ * 7–13 years: a discovery landscape above, the actual task on a clean sheet
+ * below. `hero` carries the greeting/next-mission text (real HTML over the
+ * sky area); `compact` shrinks the landscape during an attempt so the task
+ * is never pushed off a small screen. No rankings, no comparison.
  */
-export default function MiddleLayout({ children, totalPoints }: PropsWithChildren<{ totalPoints?: number }>) {
-    const { displayName, logout } = useChildIdentity();
+export default function MiddleLayout({
+    children,
+    hero,
+    compact = false,
+}: PropsWithChildren<{ hero?: ReactNode; compact?: boolean }>) {
+    const { logout } = useChildIdentity();
 
     useEffect(() => {
         document.documentElement.dataset.shell = 'middle';
     }, []);
 
     return (
-        <div className="min-h-screen bg-bg text-ink" data-shell="middle">
-            <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 sm:px-8">
-                <Link href="/crianca" className="flex items-center gap-2">
-                    <Mascot state="welcome" size={36} />
-                    <span className="font-semibold">Olá, {displayName}!</span>
-                </Link>
+        <div className="min-h-screen bg-bg pb-[env(safe-area-inset-bottom)] text-ink" data-shell="middle">
+            <div className={`relative overflow-hidden ${compact ? 'h-28 sm:h-40' : 'h-72 sm:h-96'}`}>
+                <TrailScene className="absolute inset-0 h-full w-full" />
+                <button
+                    onClick={logout}
+                    aria-label="Trocar de perfil (sair)"
+                    className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-11 w-11 items-center justify-center rounded-full bg-surface/90 text-ink-muted shadow-soft"
+                >
+                    <Icon name="logout" size={20} />
+                </button>
+                {hero && <div className="absolute inset-x-0 top-0 px-5 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-10">{hero}</div>}
+            </div>
 
-                <div className="flex items-center gap-4 text-sm">
-                    {totalPoints !== undefined && (
-                        <span className="rounded-full bg-accent-soft px-3 py-1 font-medium text-accent">★ {totalPoints} pts</span>
-                    )}
-                    <button onClick={logout} className="text-ink-muted underline">
-                        Trocar
-                    </button>
-                </div>
-            </header>
-
-            <main className="px-4 py-6 sm:px-8">{children}</main>
+            <main className="relative z-10 mx-auto -mt-8 w-full max-w-2xl px-3 pb-12 sm:px-6">
+                <div className="aet-rise rounded-t-[2rem] rounded-b-shell bg-surface px-5 py-6 shadow-lift sm:px-8">{children}</div>
+            </main>
         </div>
     );
 }

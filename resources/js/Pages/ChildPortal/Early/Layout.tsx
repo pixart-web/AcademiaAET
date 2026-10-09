@@ -1,13 +1,16 @@
+import Icon from '@/Components/Icon';
 import Mascot from '@/Components/Mascot';
+import { ForestScene } from '@/Components/art/Scenes';
+import { SquirrelState } from '@/Components/art/Squirrel';
 import { useChildIdentity } from '@/Child/useChildIdentity';
 import { PropsWithChildren, useEffect } from 'react';
 
 /**
- * 3–6 years: one screen, one task, minimal reading, adult-assisted. No menu,
- * no navigation chrome beyond "sair" — the child never has to find their way
- * around, only look at what's in front of them.
+ * 3–6 years: a forest clearing frames ONE task. Illustration lives in the
+ * band above; words and controls sit on a clean card, never on texture.
+ * No menu — only a round "sair" for the adult.
  */
-export default function EarlyLayout({ children }: PropsWithChildren) {
+export default function EarlyLayout({ children, mascot = 'welcome' }: PropsWithChildren<{ mascot?: SquirrelState }>) {
     const { logout } = useChildIdentity();
 
     useEffect(() => {
@@ -15,22 +18,25 @@ export default function EarlyLayout({ children }: PropsWithChildren) {
     }, []);
 
     return (
-        <div className="flex min-h-screen flex-col bg-bg text-ink" data-shell="early">
-            <header className="flex items-center justify-between px-4 py-4">
-                <Mascot state="welcome" size={48} />
+        <div className="min-h-screen bg-bg pb-[env(safe-area-inset-bottom)] text-ink" data-shell="early">
+            <div className="relative h-52 overflow-hidden sm:h-64">
+                <ForestScene className="absolute inset-0 h-full w-full" />
                 <button
                     onClick={logout}
                     aria-label="Sair (para um adulto)"
-                    className="rounded-full border border-border bg-surface p-3 text-ink-muted"
+                    className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] flex h-12 w-12 items-center justify-center rounded-full bg-surface/90 text-ink-muted shadow-soft"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <Icon name="logout" size={22} />
                 </button>
-            </header>
+            </div>
 
-            <main className="flex flex-1 flex-col items-center justify-center px-4 pb-10 text-center">{children}</main>
+            <div className="relative z-10 -mt-24 flex justify-center">
+                <Mascot state={mascot} size={150} className="drop-shadow-sm" />
+            </div>
+
+            <main className="relative z-10 mx-auto -mt-4 w-full max-w-lg px-4 pb-12">
+                <div className="aet-rise flex flex-col items-center rounded-shell bg-surface px-5 py-8 text-center shadow-soft sm:px-8">{children}</div>
+            </main>
         </div>
     );
 }
