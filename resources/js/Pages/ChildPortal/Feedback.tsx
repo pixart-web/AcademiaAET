@@ -1,3 +1,4 @@
+import Icon from '@/Components/Icon';
 import Mascot from '@/Components/Mascot';
 import { useChildIdentity } from '@/Child/useChildIdentity';
 import { Head, Link } from '@inertiajs/react';
@@ -22,11 +23,11 @@ const ACHIEVEMENT_LABEL: Record<string, string> = {
     milestone: 'Conquista',
 };
 
-function FeedbackBody({ assignment, evaluation, achievements }: FeedbackData) {
+function FeedbackBody({ assignment, evaluation, achievements, showMascot = false }: FeedbackData & { showMascot?: boolean }) {
     if (assignment.status === 'submitted') {
         return (
             <>
-                <Mascot state="waiting" size={90} />
+                {showMascot && <Mascot state="waiting" size={90} />}
                 <p className="mt-4 text-lg">A tua resposta foi enviada e está a aguardar avaliação.</p>
             </>
         );
@@ -34,10 +35,10 @@ function FeedbackBody({ assignment, evaluation, achievements }: FeedbackData) {
 
     return (
         <>
-            <Mascot state="celebrate" size={90} />
-            <h1 className="mt-4 text-xl font-semibold">{assignment.title}</h1>
+            {showMascot && <Mascot state="celebrate" size={90} />}
+            <h1 className="mt-4 text-2xl font-extrabold">{assignment.title}</h1>
 
-            <div className="mt-4 rounded-shell border border-border bg-surface p-5 text-left">
+            <div className="mt-4 w-full rounded-shell border border-border bg-bg/60 p-5 text-left">
                 <p className="text-sm font-medium text-ink-muted">Feedback da tua terapeuta</p>
                 <p className="mt-2">
                     {evaluation?.shared_feedback
@@ -49,9 +50,9 @@ function FeedbackBody({ assignment, evaluation, achievements }: FeedbackData) {
             {achievements.length > 0 && (
                 <div className="mt-4 flex flex-wrap justify-center gap-3">
                     {achievements.map((a, i) => (
-                        <div key={i} className="rounded-shell border border-border bg-surface px-4 py-3 text-center">
-                            <p className="text-2xl">🏅</p>
-                            <p className="text-sm font-medium">{ACHIEVEMENT_LABEL[a.type]}</p>
+                        <div key={i} className="flex items-center gap-2 rounded-full bg-highlight/50 px-4 py-2 text-sm font-bold text-highlight-ink">
+                            <Icon name="star" size={18} />
+                            {ACHIEVEMENT_LABEL[a.type]}
                         </div>
                     ))}
                 </div>
@@ -65,7 +66,7 @@ export default function Feedback(props: FeedbackData) {
 
     if (child.visual_experience === '3-6') {
         return (
-            <EarlyLayout>
+            <EarlyLayout mascot={props.assignment.status === 'submitted' ? 'waiting' : 'celebrate'}>
                 <Head title={props.assignment.title} />
                 <FeedbackBody {...props} />
             </EarlyLayout>
@@ -76,7 +77,7 @@ export default function Feedback(props: FeedbackData) {
         return (
             <TeenLayout>
                 <Head title={props.assignment.title} />
-                <Link href="/crianca" className="text-sm text-ink-muted underline">
+                <Link href="/crianca" className="text-sm font-bold text-accent hover:underline">
                     ← Voltar
                 </Link>
                 <div className="mt-4">
@@ -87,14 +88,14 @@ export default function Feedback(props: FeedbackData) {
     }
 
     return (
-        <MiddleLayout>
+        <MiddleLayout compact>
             <Head title={props.assignment.title} />
             <div className="mx-auto max-w-lg text-center">
-                <Link href="/crianca" className="text-sm text-ink-muted underline">
+                <Link href="/crianca" className="text-sm font-bold text-accent hover:underline">
                     ← Voltar às missões
                 </Link>
-                <div className="mt-4">
-                    <FeedbackBody {...props} />
+                <div className="mt-4 flex flex-col items-center">
+                    <FeedbackBody {...props} showMascot />
                 </div>
             </div>
         </MiddleLayout>

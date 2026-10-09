@@ -1,5 +1,6 @@
 import InputError from '@/Components/InputError';
-import Mascot from '@/Components/Mascot';
+import { Sprig } from '@/Components/art/Botanicals';
+import Logo from '@/Components/art/Logo';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useEffect } from 'react';
 
@@ -26,17 +27,19 @@ export default function Login({
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-bg px-4" data-shell="professional">
+        <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg px-4" data-shell="professional">
+            <Sprig className="pointer-events-none absolute -left-4 bottom-0 hidden opacity-90 sm:block" size={190} />
+            <Sprig className="pointer-events-none absolute -right-4 top-8 hidden opacity-70 sm:block" size={150} flip />
             <Head title="Entrar" />
 
-            <div className="w-full max-w-sm rounded-shell border border-border bg-surface p-8">
+            <div className="relative w-full max-w-sm rounded-shell border border-border bg-surface p-8 shadow-soft">
                 <div className="mb-6 flex flex-col items-center text-center">
-                    <Mascot state="welcome" size={64} />
-                    <h1 className="mt-4 text-lg font-semibold text-ink">Portal profissional</h1>
-                    <p className="text-sm text-ink-muted">Academia AET</p>
+                    <Logo size="lg" />
+                    <h1 className="mt-5 font-display text-2xl text-ink">Portal profissional</h1>
+                    <p className="text-sm text-ink-muted">Entre para acompanhar cada pequeno passo.</p>
                 </div>
 
-                {status && <div className="mb-4 rounded-shell bg-accent-soft px-3 py-2 text-sm text-accent">{status}</div>}
+                {status && <div className="mb-4 rounded-shell bg-success-soft px-3 py-2 text-sm text-success">{status}</div>}
 
                 <form onSubmit={submit} className="space-y-4">
                     <div>
@@ -79,7 +82,7 @@ export default function Login({
                     <button
                         type="submit"
                         disabled={processing}
-                        className="w-full rounded-shell bg-accent px-4 py-2.5 text-sm font-medium text-accent-ink disabled:opacity-60"
+                        className="w-full h-11 rounded-shell bg-accent px-4 text-sm font-bold text-accent-ink shadow-soft hover:brightness-110 disabled:opacity-60"
                     >
                         Entrar
                     </button>

@@ -1,17 +1,24 @@
-import ApplicationLogo from '@/Components/ApplicationLogo';
+import { Sprig } from '@/Components/art/Botanicals';
+import Logo from '@/Components/art/Logo';
 import { Link } from '@inertiajs/react';
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, useEffect } from 'react';
 
+/** Shared frame for every signed-out staff screen (login, recovery, MFA...). */
 export default function Guest({ children }: PropsWithChildren) {
-    return (
-        <div className="flex min-h-screen flex-col items-center bg-gray-100 pt-6 sm:justify-center sm:pt-0">
-            <div>
-                <Link href="/">
-                    <ApplicationLogo className="h-20 w-20 fill-current text-gray-500" />
-                </Link>
-            </div>
+    useEffect(() => {
+        document.documentElement.dataset.shell = 'professional';
+    }, []);
 
-            <div className="mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-md sm:max-w-md sm:rounded-lg">
+    return (
+        <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-bg px-4 py-10" data-shell="professional">
+            <Sprig className="pointer-events-none absolute -left-4 bottom-0 hidden opacity-90 sm:block" size={170} />
+            <Sprig className="pointer-events-none absolute -right-4 top-10 hidden opacity-70 sm:block" size={140} flip />
+
+            <Link href="/" aria-label="academia AET">
+                <Logo size="lg" />
+            </Link>
+
+            <div className="relative mt-8 w-full overflow-hidden rounded-shell border border-border bg-surface px-6 py-6 shadow-soft sm:max-w-md">
                 {children}
             </div>
         </div>

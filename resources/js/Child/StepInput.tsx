@@ -309,7 +309,7 @@ function RecordingInput({
             )}
 
             {status === 'error' && error && (
-                <p role="alert" className="rounded-shell bg-danger/10 px-3 py-2 text-sm text-danger">
+                <p role="alert" className="rounded-shell bg-danger-soft px-3 py-2 text-sm text-danger">
                     {error}
                 </p>
             )}
@@ -336,7 +336,7 @@ function RecordingInput({
                         Parar
                     </button>
                 )}
-                {status === 'preview' && (
+                {status === 'preview' && !(sent && recorded) && (
                     <>
                         <button type="button" disabled={disabled} onClick={discard} className="rounded-shell border border-border px-4 py-2 disabled:opacity-60">
                             Repetir
@@ -346,7 +346,11 @@ function RecordingInput({
                         </button>
                     </>
                 )}
-                {recorded && status === 'idle' && <p className="text-ink-muted">Gravação enviada ✓</p>}
+                {recorded && (status === 'idle' || sent) && (
+                    <p className="inline-flex items-center gap-1.5 font-bold text-success" role="status">
+                        Gravação enviada ✓
+                    </p>
+                )}
             </div>
         </div>
     );
