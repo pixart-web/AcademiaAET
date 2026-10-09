@@ -88,5 +88,6 @@ Nenhuma app foi criada.
   imagem por opção no editor.
 - Duração estimada nas atividades e separador "Recursos": não existem no
   backend — deliberadamente omitidos em vez de inventados.
+- Desenho e media de instrução (imagem + texto alternativo) foram verificados no browser nos três shells: o traço é guardado, mostrado como "desenho anterior" e a imagem aparece com a sua descrição.
 - Avatares são genéricos/ficcionais; o portal não tem fotografias.
 - Navegação 14–18 em telemóvel tem 3 destinos (a referência tem 4).
