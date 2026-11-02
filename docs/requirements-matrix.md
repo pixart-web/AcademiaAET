@@ -1,5 +1,23 @@
 # Matriz de requisitos — Master Prompt Academia AET
 
+> **AET-RC01 (ronda de remediação de auditoria externa, branch
+> `claude/aet-rc01-remediation`)**: uma auditoria externa ao código
+> (commit `fc8c842`) encontrou 8 problemas reais de isolamento clínico,
+> autenticação de dispositivo, validação/pontuação e gestão de ficheiros
+> que não tinham sido apanhados pelas rondas anteriores desta matriz —
+> nomeadamente: gravações clínicas de uma criança eram listadas na
+> biblioteca didática de qualquer profissional da organização e
+> reproduzíveis por uma terapeuta sem ligação ao caso (achado 1);
+> revogar um dispositivo não terminava sessões/tokens já emitidos
+> (achado 2); um código de ativação podia ser reutilizado (achado 3);
+> `response_config.correct` (a resposta certa) era enviado ao portal da
+> criança, e submeter uma tentativa sem responder aos passos obrigatórios
+> tinha sucesso (achado 6). Detalhe completo, achado a achado — reprodução,
+> causa, correção, teste e resultado obtido — em `docs/aet-rc01.md`. As
+> linhas abaixo que estes achados tocam diretamente foram atualizadas;
+> o resto da matriz reflete o estado de antes desta ronda e continua
+> válido.
+
 Estados: **Implementado e verificado** (testado por teste automático e/ou no
 browser nesta sessão) · **Implementado, por verificar** (código escrito,
 sem teste automático nem verificação manual direta) · **Parcial** ·
@@ -82,6 +100,8 @@ master prompt).
 | Pré-visualização e arquivo | Implementado e verificado | Arquivar existe; a listagem mostra miniatura/leitor inline (imagem/áudio/vídeo) via URL assinada de curta duração, tal como no resto do sistema |
 | Limites configuráveis | Implementado e verificado | Limites de tamanho por tipo movidos para `config/media.php`, ajustáveis por variável de ambiente (`MEDIA_MAX_IMAGE_KB` etc., ver `.env.example`) sem tocar em código; ainda não há UI de administração para o fazer sem acesso ao servidor. Testado: baixar o limite via config e confirmar que o upload passa a ser recusado |
 | Armazenamento privado | Implementado e verificado | Disco `local` sem `serve`, só acessível via `MediaStreamController` com URL assinada de curta duração |
+| Isolamento de conteúdo clínico vs. didático | Implementado e verificado | **AET-RC01 achado 1**: até esta ronda, a gravação/desenho de uma criança (`AttemptService::storeRecording`/`storeDrawing`) era guardada na mesma tabela e listada na biblioteca de qualquer profissional da organização, reproduzível por quem não tivesse nenhuma ligação ao caso. Corrigido com `MediaPurpose` (`instructional`/`clinical_response`) + `owner_child_profile_id`; `MediaAssetPolicy` exige associação de caso ativa (ou admin) para uma resposta clínica, a biblioteca didática exclui-as sempre. Ver `docs/aet-rc01.md`. |
+| Propriedade e limpeza de ficheiros | Implementado e verificado | **AET-RC01 achado 8**: regravar um passo deixava o ficheiro anterior órfão (sem referência, nunca limpo mesmo por uma eliminação "completa" da criança). Corrigido — ver `docs/aet-rc01.md`; novo comando `php artisan media:reconcile-orphans` (read-only) para dados legados sem proprietário seguro. |
 
 ## Módulo D — Biblioteca e editor de atividades
 
@@ -92,8 +112,8 @@ master prompt).
 | Categorias/áreas configuráveis | Parcial | Campos de texto livre, não uma lista configurável pela clínica |
 | Dificuldade, instruções, critérios | Implementado e verificado | |
 | Pré-visualização nos 3 layouts | Implementado e verificado | `Activities/Preview.tsx` — interativo, nunca persiste (sem `Attempt` criado, testado) |
-| Editor por passos (sem drag-and-drop) | Implementado e verificado | `Activities/Edit.tsx` |
-| **7 tipos de resposta** | **Implementado e verificado** | Ver nota abaixo — o relatório anterior mencionava "6 tipos" por erro de contagem, não por funcionalidade em falta |
+| Editor por passos (sem drag-and-drop) | Implementado e verificado | `Activities/Edit.tsx`. **AET-RC01 achado 5**: até esta ronda, o editor não tinha nenhum campo para associar conteúdo de apoio (`instruction_media_asset_id`) a um passo — o valor existia na base de dados e na validação, mas era sempre descartado silenciosamente por falta de UI. Corrigido com um seletor por passo, escopado exatamente à mesma regra de validação do servidor (organização + conteúdo didático ativo). |
+| **7 tipos de resposta** | **Implementado e verificado** | Ver nota abaixo — o relatório anterior mencionava "6 tipos" por erro de contagem, não por funcionalidade em falta. **AET-RC01 achado 6**: `response_config.correct` (a resposta certa) era enviado tal e qual para o portal da criança, e não havia validação por tipo nem verificação de que os passos obrigatórios tinham resposta antes de submeter — corrigido, ver `docs/aet-rc01.md`. **Achado 7**: estado de texto/gravação por passo podia misturar-se entre passos consecutivos (faltava `key={step.id}`); corrigido. |
 | Repetição verbal = instrução áudio + gravação | Implementado e verificado | `voice_recording`, sem reconhecimento automático de fala |
 | Sem IA clínica/emoção/diagnóstico | Implementado e verificado | Nenhum destes existe no código |
 
@@ -128,12 +148,13 @@ contagem no texto do relatório, confirmado e corrigido aqui.
 |---|---|---|
 | Mostrar atividades do próprio perfil | Implementado e verificado | |
 | Reproduzir instrução | Implementado e verificado | Media do professor + `SpeakButton` (síntese de voz) |
-| Responder, guardar progresso, retomar | Implementado e verificado | Testado (`AttemptExecutionTest`) |
-| Submeter com confirmação | Implementado e verificado | |
+| Responder, guardar progresso, retomar | Implementado e verificado | Testado (`AttemptExecutionTest`). **AET-RC01 achado 4**: uma atividade com `max_attempts=1` não podia ser retomada depois de a criança sair a meio (o limite era verificado antes de procurar uma tentativa em curso) — corrigido, com bloqueio em transação + índice único parcial na base de dados contra criação concorrente, verificado com concorrência real (duas ligações Postgres, uma delas num processo forkado). |
+| Submeter com confirmação | Implementado e verificado | **AET-RC01 achado 6**: submeter com um passo obrigatório por responder tinha sucesso até esta ronda — corrigido, `submit()` rejeita e indica quais faltam; confirmado ao vivo na própria interface da criança, não só por teste. |
 | Falha de rede/sessão expirada/upload | Implementado e verificado | Erros surfaced na UI (não silenciosos); ver commit de tratamento de falhas de upload |
-| Permissão de câmara/microfone recusada | Implementado e verificado | Mensagem clara em `RecordingInput`, sem ecrã morto |
-| Gravação: ação explícita, indicador ativo, ouvir/ver, repetir, eliminar antes de enviar | Implementado e verificado | |
-| Parar streams ao terminar/sair | Implementado e verificado | `stream.getTracks().forEach(t => t.stop())` |
+| Permissão de câmara/microfone recusada | Implementado e verificado | Mensagem clara em `RecordingInput`, sem ecrã morto; confirmado ao vivo nesta ronda que o estado de erro não deixa a interface presa |
+| Gravação: ação explícita, indicador ativo, ouvir/ver, repetir, eliminar antes de enviar | Implementado e verificado | **AET-RC01 achado 7**: botões "Enviar"/"Repetir" não desativavam durante o envio (risco de envio duplicado); corrigido, com proteção adicional contra duplo-clique |
+| Parar streams ao terminar/sair | **Corrigido nesta ronda (AET-RC01 achado 7)** | A nota anterior ("Implementado e verificado") estava incorreta — `stream.getTracks().forEach(t => t.stop())` só corria no callback `onstop` de uma gravação terminada normalmente, nunca num `useEffect` de desmonte: sair de um passo a meio de uma gravação real deixava o microfone/câmara ativos. Corrigido com limpeza ao desmontar e uma guarda contra `getUserMedia()` resolver depois de a criança já ter saído do passo. **Limitação**: o ambiente desta sessão não tem microfone/câmara reais — a correção foi revista e teria passado nos testes automáticos do seu próprio efeito, mas a paragem real de um stream verdadeiro não foi observada ao vivo. |
+| Recuperar resposta ao voltar a um passo | Implementado e verificado | **AET-RC01 achado 7** (novo, não existia antes): o estado de texto/gravação de um passo podia ficar preso ao passo anterior por falta de `key={step.id}`, e uma gravação/desenho já respondido não tinha pré-visualização nenhuma ao regressar (só decidia "já gravado" olhando para `value`, que é sempre `null` em respostas com ficheiro). Corrigido; confirmado ao vivo que voltar dois passos atrás recupera o texto certo em cada um. |
 | Sem gravações em `localStorage` | Implementado e verificado | Tudo passa por upload para o servidor; nada persiste no browser |
 
 ## Módulo H — Avaliação e notas
@@ -185,8 +206,9 @@ contagem no texto do relatório, confirmado e corrigido aqui.
 | Nomes de ficheiro controlados | Implementado e verificado | Laravel gera nomes aleatórios no `store()` |
 | Segredos em variáveis de ambiente | Implementado e verificado | |
 | Auditoria com acesso restrito | Implementado e verificado | `AuditLogger` grava: login de equipa (incluindo via MFA), ativar/desativar conta, avaliação criada, MFA ativado/desativado, emissão/revogação de acesso de dispositivo, publicar/arquivar atividade, **edição de perfil de criança** (`child.profile_updated` — regista só se `care_notes` mudou, nunca o texto), **edição de conteúdo de atividade** (`activity.content_updated` — regista se bifurcou nova versão), associar/desassociar terapeuta, associar encarregado de educação, revogar sessão, exportar/eliminar dados de uma criança — todos testados. Nova página `Audit/Index` (rota `/audit`, `AuditEventPolicy::viewAny` restrito a `isAdmin()`, com filtro por ação e paginação) dá à equipa uma UI de consulta em vez de só a base de dados — confirmado ao vivo no browser: uma terapeuta (não-admin) recebe 403, um admin só vê eventos da própria organização, e um evento novo aparece imediatamente após a ação real. |
-| Retenção configurável / exportação / eliminação | Parcial | `ChildDataService`: exportação completa (JSON, inclui notas clínicas — é o registo da própria clínica) e eliminação permanente admin-only com confirmação pelo nome, testada (cascata na base de dados + apagar ficheiro de media). **Ainda em falta**: política de retenção *configurável* (hoje é uma ação manual, não uma regra automática por prazo) |
+| Retenção configurável / exportação / eliminação | Parcial | `ChildDataService`: exportação completa (JSON, inclui notas clínicas — é o registo da própria clínica) e eliminação permanente admin-only com confirmação pelo nome, testada (cascata na base de dados + apagar ficheiro de media). **AET-RC01 achado 8**: a eliminação só encontrava media por referência *atual* em `step_responses` — uma gravação já substituída por uma nova (órfã, sem nenhuma referência) sobrevivia intacta a uma eliminação dita "completa". Corrigido: procura agora por propriedade real (`owner_child_profile_id`), e a ordem de limpeza também foi corrigida (base de dados confirmada antes de tocar no disco, nunca o contrário). **Ainda em falta**: política de retenção *configurável* (hoje é uma ação manual, não uma regra automática por prazo) — deliberadamente não implementada esta ronda: o prazo em si é uma decisão clínica ainda por tomar, e construir um apagamento automático antes disso é um risco, não uma correção. |
 | Consentimentos com versão/autor/data | Implementado e verificado | `ConsentRecordController` + secção no perfil da criança; regista tipo/versão/autor/data, revogável; nenhum texto legal é escrito pelo sistema, só qual versão do texto da clínica foi usada |
+| Acesso de dispositivo: ativação única, revogação imediata | Implementado e verificado | **AET-RC01 achados 2 e 3** (linhas não existiam nesta matriz antes desta ronda): um código de ativação podia ser reutilizado indefinidamente (achado 3, corrigido com verificação+consumo atómicos); revogar um dispositivo não tinha nenhum efeito em sessões/tokens já emitidos a partir dele — nem no portal web, nem na API, nem no acesso a media (achado 2, corrigido com um ponto único de verdade, `DeviceAssociation::resolveActiveFor()`, usado nos três sítios). Testado com percurso HTTP real, incluindo um dispositivo revogado perder acesso a media na próxima chamada mesmo com uma URL assinada ainda válida. |
 
 ## Acessibilidade
 
@@ -212,3 +234,5 @@ encontradas e corrigidas nesta etapa.
 | Checklist de preparação do servidor | `docs/production-checklist.md` |
 | Relatório de testes | `docs/delivery-report.md` |
 | Limitações e decisões pendentes da clínica | `docs/delivery-report.md` |
+| CI (testes + build) | `.github/workflows/ci.yml` — SQLite rápido + suite completa contra PostgreSQL real + verificação TypeScript/build. Adicionado nesta ronda (AET-RC01); não inclui testes de browser automatizados (sem Dusk/Playwright configurado) |
+| Relatório de remediação de auditoria externa | `docs/aet-rc01.md` (AET-RC01, esta ronda) |

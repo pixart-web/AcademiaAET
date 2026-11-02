@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\DeviceAssociation;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -19,26 +20,49 @@ class DeviceAuthService
     private const LOCKOUT_MINUTES = 15;
 
     /**
+     * One-time use: a second call with the same device code + PIN, even a
+     * genuinely concurrent one, must never both succeed. The check
+     * (DeviceAssociation::isActivationUsable(), which is false once
+     * activated_at is set) and the consumption (activateWithToken()) run
+     * inside one locked transaction, so two simultaneous requests are
+     * serialized on the row lock — the second always sees the first's
+     * already-committed activation and is rejected, same generic message
+     * as any other invalid code/PIN (never reveals *why* it failed).
+     *
      * @return array{0: DeviceAssociation, 1: string} the device and its new device token
      */
     public function activate(string $deviceCode, string $pin): array
     {
-        $device = DeviceAssociation::query()
-            ->where('device_identifier', Str::upper($deviceCode))
-            ->where('status', 'active')
-            ->first();
+        return DB::transaction(function () use ($deviceCode, $pin) {
+            $device = DeviceAssociation::query()
+                ->where('device_identifier', Str::upper($deviceCode))
+                ->where('status', 'active')
+                ->lockForUpdate()
+                ->first();
 
-        if (! $device || ! $device->isUsable() || ! $device->checkPin($pin)) {
-            throw ValidationException::withMessages(['pin' => 'Código ou PIN inválidos.']);
-        }
+            if (! $device) {
+                throw ValidationException::withMessages(['pin' => 'Código ou PIN inválidos.']);
+            }
 
-        $token = Str::random(48);
-        $device->activateWithToken($token);
-        $device->last_used_at = now();
-        $device->failed_attempts = 0;
-        $device->save();
+            if ($device->locked_until && $device->locked_until->isFuture()) {
+                throw ValidationException::withMessages(['pin' => 'Código ou PIN inválidos.']);
+            }
 
-        return [$device, $token];
+            if (! $device->isActivationUsable() || ! $device->checkPin($pin)) {
+                $this->registerFailedAttempt($device);
+
+                throw ValidationException::withMessages(['pin' => 'Código ou PIN inválidos.']);
+            }
+
+            $token = Str::random(48);
+            $device->activateWithToken($token);
+            $device->session_expires_at = now()->addDays((int) config('device.session_days', 365));
+            $device->last_used_at = now();
+            $device->failed_attempts = 0;
+            $device->save();
+
+            return [$device, $token];
+        });
     }
 
     public function unlock(DeviceAssociation $device, string $deviceToken, string $pin): DeviceAssociation
@@ -51,12 +75,8 @@ class DeviceAuthService
             throw ValidationException::withMessages(['pin' => 'Demasiadas tentativas. Tente novamente mais tarde.']);
         }
 
-        if (! $device->isUsable() || ! $device->checkPin($pin)) {
-            $device->failed_attempts++;
-            if ($device->failed_attempts >= self::MAX_ATTEMPTS) {
-                $device->locked_until = now()->addMinutes(self::LOCKOUT_MINUTES);
-            }
-            $device->save();
+        if (! $device->isSessionUsable() || ! $device->checkPin($pin)) {
+            $this->registerFailedAttempt($device);
 
             throw ValidationException::withMessages(['pin' => 'PIN incorreto.']);
         }
@@ -66,5 +86,14 @@ class DeviceAuthService
         $device->save();
 
         return $device;
+    }
+
+    private function registerFailedAttempt(DeviceAssociation $device): void
+    {
+        $device->failed_attempts++;
+        if ($device->failed_attempts >= self::MAX_ATTEMPTS) {
+            $device->locked_until = now()->addMinutes(self::LOCKOUT_MINUTES);
+        }
+        $device->save();
     }
 }

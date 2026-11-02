@@ -48,7 +48,7 @@ class ChildFeedbackTest extends TestCase
         $attempt = $this->makeSubmittedAttempt();
         $child = $attempt->assignment->childProfile;
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->get("/crianca/atribuicoes/{$attempt->assignment_id}/feedback")
             ->assertInertia(fn (AssertableJson $page) => $page
                 ->where('assignment.status', 'submitted')
@@ -71,7 +71,7 @@ class ChildFeedbackTest extends TestCase
         $attempt->update(['status' => 'reviewed']);
         $attempt->assignment->update(['status' => 'reviewed']);
 
-        $this->actingAs($child, 'child')
+        $this->actingAsChild($child)
             ->get("/crianca/atribuicoes/{$attempt->assignment_id}/feedback")
             ->assertInertia(fn (AssertableJson $page) => $page
                 ->where('evaluation.shared_feedback', 'Muito bem! Continua assim.')
@@ -93,7 +93,7 @@ class ChildFeedbackTest extends TestCase
         $attempt->update(['status' => 'reviewed']);
         $attempt->assignment->update(['status' => 'reviewed']);
 
-        $response = $this->actingAs($child, 'child')->get("/crianca/atribuicoes/{$attempt->assignment_id}/feedback");
+        $response = $this->actingAsChild($child)->get("/crianca/atribuicoes/{$attempt->assignment_id}/feedback");
 
         $response->assertInertia(fn (AssertableJson $page) => $page
             ->where('evaluation.shared_feedback', null)
@@ -124,7 +124,7 @@ class ChildFeedbackTest extends TestCase
         $attempt->update(['status' => 'reviewed']);
         $attempt->assignment->update(['status' => 'reviewed']);
 
-        $response = $this->actingAs($child, 'child')->get("/crianca/atribuicoes/{$attempt->assignment_id}/feedback");
+        $response = $this->actingAsChild($child)->get("/crianca/atribuicoes/{$attempt->assignment_id}/feedback");
 
         $response->assertDontSee('SEGREDO_CLINICO_NUNCA_EXPOR', false);
     }
@@ -134,7 +134,7 @@ class ChildFeedbackTest extends TestCase
         $attempt = $this->makeSubmittedAttempt();
         $otherChild = ChildProfile::factory()->for($attempt->assignment->childProfile->organization)->create();
 
-        $this->actingAs($otherChild, 'child')
+        $this->actingAsChild($otherChild)
             ->get("/crianca/atribuicoes/{$attempt->assignment_id}/feedback")
             ->assertForbidden();
     }

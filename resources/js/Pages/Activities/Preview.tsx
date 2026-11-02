@@ -82,7 +82,7 @@ export default function Preview({ activity, steps: initialSteps }: { activity: {
                         <SpeakButton text={[step.title, step.body].filter(Boolean).join('. ')} />
                     </div>
 
-                    {step.instruction_media_url && <MediaPreview url={step.instruction_media_url} />}
+                    {step.instruction_media && <MediaPreview media={step.instruction_media} />}
 
                     <div className="mt-4">
                         <StepInput step={step} saving={false} onValue={setLocalValue} onFile={setLocalFile} />

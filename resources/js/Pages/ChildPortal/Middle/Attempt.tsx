@@ -33,7 +33,7 @@ export default function Attempt({ attempt, steps }: { attempt: { id: number }; s
                         <SpeakButton text={instructionText} />
                     </div>
 
-                    {step.instruction_media_url && <MediaPreview url={step.instruction_media_url} />}
+                    {step.instruction_media && <MediaPreview media={step.instruction_media} />}
 
                     {error && (
                         <p role="alert" className="mt-4 rounded-shell bg-danger/10 px-3 py-2 text-sm text-danger">
@@ -42,7 +42,7 @@ export default function Attempt({ attempt, steps }: { attempt: { id: number }; s
                     )}
 
                     <div className="mt-6">
-                        <StepInput step={step} saving={saving} onValue={saveValue} onFile={saveFile} />
+                        <StepInput key={step.id} step={step} saving={saving} onValue={saveValue} onFile={saveFile} />
                     </div>
                 </div>
 

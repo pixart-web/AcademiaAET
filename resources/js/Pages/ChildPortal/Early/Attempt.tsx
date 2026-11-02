@@ -25,7 +25,7 @@ export default function Attempt({ attempt, steps }: { attempt: { id: number }; s
                 <SpeakButton text={instructionText} label="Ouvir de novo" />
             </div>
 
-            {step.instruction_media_url && <MediaPreview url={step.instruction_media_url} />}
+            {step.instruction_media && <MediaPreview media={step.instruction_media} />}
 
             {error && (
                 <p role="alert" className="mt-4 rounded-shell bg-danger/10 px-4 py-2 text-base text-danger">
@@ -35,6 +35,7 @@ export default function Attempt({ attempt, steps }: { attempt: { id: number }; s
 
             <div className="mt-6 w-full max-w-xs">
                 <StepInput
+                    key={step.id}
                     step={step}
                     saving={saving}
                     onValue={saveValue}

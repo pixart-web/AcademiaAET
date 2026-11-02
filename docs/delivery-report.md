@@ -71,11 +71,47 @@ aplicação que guarda notas clínicas de crianças é um risco real se alguém
 o ativar sem essa decisão estar fechada. Ver `docs/requirements-matrix.md`
 para o detalhe módulo a módulo do enunciado original.
 
+## AET-RC01 — correções da auditoria externa (ronda mais recente)
+
+Uma auditoria externa independente ao código (commit `fc8c842`) encontrou
+8 problemas reais, nenhum deles apanhado pelas rondas anteriores: media
+clínica de uma criança listada na biblioteca didática e reproduzível por
+uma profissional sem ligação ao caso; revogar um dispositivo sem efeito
+em sessões/tokens já emitidos; um código de ativação reutilizável;
+`startOrResume()` a impedir retomar uma tentativa só por já ter atingido
+o limite (verificava o limite antes de procurar a tentativa em curso);
+instruções multimédia sem tipo explícito (e sem nenhum caso para vídeo);
+a resposta certa (`response_config.correct`) enviada tal e qual para o
+portal da criança, e submissão aceitando passos obrigatórios por
+responder; estado de texto/gravação a misturar-se entre passos
+consecutivos; e gravações substituídas a ficarem órfãs (nunca limpas,
+nem numa eliminação "completa" da criança).
+
+Os 8 foram reproduzidos por leitura direta do código antes de qualquer
+alteração (nunca assumidos), corrigidos, e verificados — cada um com
+teste de regressão automático e, nos casos com superfície de UI, também
+ao vivo no browser. Detalhe completo achado a achado — reprodução,
+causa, correção, teste, resultado obtido — em `docs/aet-rc01.md`; linhas
+tocadas em `docs/requirements-matrix.md` foram atualizadas para
+referenciar essa auditoria.
+
+Branch `claude/aet-rc01-remediation`, ainda não integrada em `main` —
+ver secção "Repositório" abaixo para o SHA exato e o estado do PR.
+Acrescentado nesta ronda: CI (`.github/workflows/ci.yml`) com a suite
+completa a correr contra SQLite (rápida) **e** contra PostgreSQL real
+(incluindo um teste de concorrência genuína, com duas ligações
+independentes à base de dados, uma delas num processo forkado), mais
+verificação TypeScript e build — nenhum destes existia antes desta
+ronda.
+
 ## Repositório
 
-`https://github.com/pixart-web/AcademiaAET`, branch `main`. Histórico
-coerente por etapa (ver `git log`); sem segredos nem dados reais
-commitados (`.env` no `.gitignore`, só `.env.example` versionado).
+`https://github.com/pixart-web/AcademiaAET`. Trabalho anterior (checkpoints
+1 a 4 acima) está em `main`. A ronda AET-RC01 está na branch
+`claude/aet-rc01-remediation` — ver o relatório final dessa ronda para o
+SHA inicial/final exatos e o estado do pull request. Histórico coerente
+por etapa (ver `git log`); sem segredos nem dados reais commitados
+(`.env` no `.gitignore`, só `.env.example` versionado).
 
 ## Como iniciar o ambiente
 
@@ -99,10 +135,44 @@ correr em produção. Ver README.md para as credenciais.
 
 ```
 php artisan test
-→ 94 testes, 333 assertions, todos a passar (última execução nesta sessão)
+→ 143 testes, 518 assertions, todos a passar (SQLite, última execução na branch AET-RC01)
+
+vendor/bin/phpunit -c phpunit.pgsql.xml
+→ os mesmos 143 testes, 518 assertions, todos a passar contra PostgreSQL real
 ```
 
-26 ficheiros de teste, cobrindo:
+38 ficheiros de teste, cobrindo (além do já listado antes da ronda AET-RC01):
+
+- **Isolamento de media clínica** (achado 1): terapeuta sem associação ao
+  caso não lista nem reproduz a gravação de uma criança; terapeuta
+  associada e admin conseguem; outra organização é rejeitada; a gravação
+  nunca aparece na biblioteca didática; um id de gravação clínica não
+  pode ser usado como conteúdo de instrução via id manual.
+- **Revogação/ativação de dispositivo** (achados 2 e 3): revogar termina a
+  sessão/token no pedido seguinte, sem afetar outro dispositivo da mesma
+  criança nem exigir logout explícito; reativar um código já usado é
+  sempre rejeitado, com a mesma mensagem genérica de "código já usado" ou
+  "nunca existiu"; duas ativações concorrentes só deixam uma vencer.
+- **Retoma e cancelamento de tentativas** (achado 4): `max_attempts=1`
+  permite sair e retomar sem criar segunda tentativa; cancelar bloqueia
+  gravar/submeter; concorrência genuína (duas ligações Postgres, uma num
+  processo forkado) prova que o bloqueio de linha serializa corretamente.
+- **Validação e pontuação** (achado 6): a resposta certa nunca aparece no
+  payload da criança; os 4 tipos sem ficheiro são validados contra o
+  conjunto de opções do próprio passo; escolha múltipla pontua por
+  conjunto, não por ordem; submissão com passo obrigatório por responder
+  é rejeitada com mensagem clara.
+- **Propriedade e limpeza de ficheiros** (achado 8): regravar um passo
+  retira a media anterior (soft-delete + ficheiro apagado); eliminação de
+  uma criança remove também gravações já substituídas que nada referencia
+  atualmente, sem nunca tocar noutra criança ou conteúdo partilhado.
+
+29 ficheiros de teste anteriores a esta ronda (9 novos nesta ronda —
+`ActivityMediaInstructionsTest`, `AttemptResumeAndCancellationTest`,
+`ClinicalMediaIsolationTest`, `Concurrency/AttemptConcurrencyPostgresTest`,
+`DeviceRevocationPropagationTest`, `MediaOwnershipAndCleanupTest`,
+`MediaReconcileOrphansCommandTest`, `StepResponseValidationTest`,
+`StepStateSerializationTest`), cobrindo:
 
 - **Isolamento**: uma terapeuta não atribuída não vê o perfil/avaliação de
   uma criança; uma criança não acede a tentativas/feedback doutra criança
@@ -164,6 +234,12 @@ testado em:
 - Android real.
 - Nenhum dispositivo físico (tablet ou telemóvel).
 - Nenhum leitor de ecrã (VoiceOver, NVDA, TalkBack).
+- Nenhum microfone/câmara reais — o browser embutido usado nesta e nas
+  rondas anteriores não tem acesso a dispositivos de captura. A correção
+  de limpeza de `MediaRecorder`/`getUserMedia` da ronda AET-RC01 (achado
+  7) foi revista e o estado de erro de permissão recusada foi confirmado
+  ao vivo, mas uma gravação real de fim a fim (pedir permissão → gravar →
+  pré-visualizar → enviar) nunca foi observada a correr neste ambiente.
 
 Ver `docs/visual-review.md` para o detalhe completo do que foi e não foi
 verificado em acessibilidade.

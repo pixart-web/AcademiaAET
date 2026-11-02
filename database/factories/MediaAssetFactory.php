@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\MediaKind;
+use App\Enums\MediaPurpose;
 use App\Models\MediaAsset;
 use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -20,10 +21,19 @@ class MediaAssetFactory extends Factory
             'path' => 'media/demo/'.fake()->uuid().'.png',
             'mime_type' => 'image/png',
             'kind' => MediaKind::Image,
+            'purpose' => MediaPurpose::Instructional,
             'title' => fake()->words(2, true),
             'alt_text' => fake()->sentence(),
             'size_bytes' => 1024,
             'status' => 'active',
         ];
+    }
+
+    public function clinicalResponse(): static
+    {
+        return $this->state(fn () => [
+            'purpose' => MediaPurpose::ClinicalResponse,
+            'uploaded_by_user_id' => null,
+        ]);
     }
 }

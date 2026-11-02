@@ -84,6 +84,10 @@ class ChildSessionController extends Controller
 
         Auth::guard('child')->login($device->childProfile);
         $request->session()->regenerate();
+        // Read on every subsequent request by EnsureChildDeviceIsActive —
+        // this is what makes revoking THIS device end THIS session on its
+        // very next request, without touching any other device's session.
+        $request->session()->put('child_device_association_id', $device->id);
 
         Cookie::queue(Cookie::make(
             self::COOKIE_NAME,

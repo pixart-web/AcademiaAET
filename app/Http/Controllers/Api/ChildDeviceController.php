@@ -26,7 +26,7 @@ class ChildDeviceController extends Controller
 
         [$device, $deviceToken] = $devices->activate($data['device_code'], $data['pin']);
 
-        $apiToken = $device->childProfile->createToken($data['device_name'], ['child'])->plainTextToken;
+        $apiToken = $device->childProfile->createToken($data['device_name'], ['child', "device:{$device->id}"])->plainTextToken;
 
         return response()->json([
             'token' => $apiToken,
@@ -47,7 +47,7 @@ class ChildDeviceController extends Controller
         $device = DeviceAssociation::findOrFail($data['device_id']);
         $devices->unlock($device, $data['device_token'], $data['pin']);
 
-        $apiToken = $device->childProfile->createToken($data['device_name'], ['child'])->plainTextToken;
+        $apiToken = $device->childProfile->createToken($data['device_name'], ['child', "device:{$device->id}"])->plainTextToken;
 
         return response()->json(['token' => $apiToken]);
     }

@@ -108,4 +108,9 @@ class ChildProfile extends Model implements AuthenticatableContract
     {
         return VisualExperience::suggestedFor($this->ageInYears());
     }
+
+    public function isActive(): bool
+    {
+        return $this->status === ChildStatus::Active;
+    }
 }

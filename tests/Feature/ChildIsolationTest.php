@@ -86,7 +86,7 @@ class ChildIsolationTest extends TestCase
             'body' => 'Informação clínica sensível que nunca deve sair do portal profissional.',
         ]);
 
-        $response = $this->actingAs($child, 'child')->get('/crianca')->assertOk();
+        $response = $this->actingAsChild($child)->get('/crianca')->assertOk();
         $response->assertDontSee('Informação clínica sensível', false);
     }
 }

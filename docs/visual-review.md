@@ -90,6 +90,33 @@ captura de ecrã com a preferência ativa).
   achados de contraste acima vieram de cálculo manual, não de uma
   ferramenta.
 
+## Adenda — AET-RC01 (ronda de remediação de auditoria externa)
+
+Verificação adicional ao vivo, mesmo browser/motor que o resto deste
+documento (nenhuma ferramenta nova instalada, nenhuma das limitações
+acima foi resolvida):
+
+- Editor de atividades: novo seletor "Conteúdo de apoio" por passo
+  (achado 5) — criada uma atividade de 3 passos (imagem/áudio/vídeo),
+  publicada, reaberta com as três associações intactas.
+- Pré-visualização nos três layouts (`Activities/Preview.tsx`): `<img>`,
+  `<audio>` e `<video>` confirmados a renderizar com o `src` assinado
+  correto em cada um dos três, exclusivamente pelo tipo explícito
+  (nunca pela extensão da URL, que uma URL assinada não tem).
+- Execução real do lado da criança: duas perguntas de texto consecutivas
+  não partilham estado; "Voltar" recupera a resposta certa em dois
+  passos diferentes (não vazia, não trocada); submeter com um passo de
+  gravação obrigatório por responder mostra o erro certo na própria
+  interface da criança; o estado de erro de permissão de microfone
+  recusada renderiza sem falha JavaScript.
+- Nova página `/audit` (achado relacionado, ronda anterior): confirmado
+  de novo nesta ronda que o filtro por ação funciona e que uma edição
+  real aparece na lista de imediato.
+
+Continua sem verificação: uma gravação de voz/vídeo real de fim a fim
+(este ambiente não tem microfone/câmara), e tudo o que já estava listado
+acima como limitação antes desta ronda.
+
 ## Capturas
 
 Capturas de ecrã representativas dos quatro layouts (profissional, 3–6,
