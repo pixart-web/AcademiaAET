@@ -181,4 +181,15 @@ class MediaOwnershipAndCleanupTest extends TestCase
         $this->assertNotNull(MediaAsset::find($instructionalMedia->id));
         Storage::disk('local')->assertExists($instructionalMedia->path);
     }
+
+    public function test_a_real_browser_voice_recording_detected_as_a_video_container_is_accepted(): void
+    {
+        [$child, $attempt, $step] = $this->makeAttemptWithRecordingStep();
+
+        // Chromium records voice as audio-only webm, which finfo reports as
+        // video/webm — rejecting that rejected every real voice recording.
+        app(AttemptService::class)->saveStep($attempt, $step, $child, null, UploadedFile::fake()->create('voz.webm', 5, 'video/webm'));
+
+        $this->assertNotNull(StepResponse::where('attempt_id', $attempt->id)->value('media_asset_id'));
+    }
 }

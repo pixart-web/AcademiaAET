@@ -17,7 +17,7 @@ export default function Home(props: {
     const { child } = useChildIdentity();
 
     if (child.visual_experience === '3-6') {
-        return <EarlyHome assignments={props.assignments} />;
+        return <EarlyHome assignments={props.assignments} completed={props.completed} />;
     }
 
     if (child.visual_experience === '14-18') {

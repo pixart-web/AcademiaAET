@@ -158,7 +158,7 @@ export default function Show({
                                         <span>{a.activity_version.activity.title}</span>
                                         <span className="flex items-center gap-3">
                                             {a.is_overdue && (
-                                                <span className="rounded-shell bg-danger/10 px-2 py-0.5 text-xs font-medium text-danger">Atrasada</span>
+                                                <span className="rounded-shell bg-danger-soft px-2 py-0.5 text-xs font-medium text-danger">Atrasada</span>
                                             )}
                                             <span className="text-ink-muted">{STATUS_LABEL[a.status] ?? a.status}</span>
                                             {canManageClinical && ['assigned', 'started'].includes(a.status) && (

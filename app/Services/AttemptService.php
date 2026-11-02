@@ -30,7 +30,12 @@ use Illuminate\Validation\ValidationException;
 class AttemptService
 {
     private const RECORDING_MIME_BY_TYPE = [
-        'voice_recording' => ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/ogg'],
+        // An audio-only recording is still a webm/mp4 *container*: finfo
+        // reports what Chrome/Firefox/Safari actually produce for voice
+        // (found by a real fake-microphone browser run, not a synthetic
+        // upload) as video/webm and video/mp4, so those are accepted here
+        // too. The allow-list is still by detected container, never by name.
+        'voice_recording' => ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/ogg', 'video/webm', 'video/mp4'],
         'video_recording' => ['video/webm', 'video/mp4'],
     ];
 

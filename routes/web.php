@@ -19,6 +19,7 @@ use App\Http\Controllers\MediaStreamController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfessionalAssignmentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Settings\MfaSettingsController;
 use App\Http\Controllers\Settings\SessionController;
 use App\Http\Controllers\UserController;
@@ -75,6 +76,7 @@ Route::middleware(['auth', 'role:admin,professional'])->group(function () {
     Route::post('evaluations/{attempt}', [EvaluationController::class, 'store'])->name('evaluations.store');
 
     Route::get('audit', [AuditEventController::class, 'index'])->name('audit.index');
+    Route::get('pesquisa', SearchController::class)->name('search');
 });
 
 Route::middleware(['auth'])->group(function () {
