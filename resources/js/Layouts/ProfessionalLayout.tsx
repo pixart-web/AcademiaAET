@@ -18,6 +18,7 @@ const NAV: NavItem[] = [
     { href: 'children.index', label: 'Crianças e jovens', icon: 'users' },
     { href: 'activities.index', label: 'Atividades', icon: 'grid' },
     { href: 'evaluations.index', label: 'Avaliações', icon: 'checkCircle' },
+    { href: 'screenings.index', label: 'Rastreios', icon: 'chat' },
     { href: 'media.index', label: 'Conteúdos', icon: 'folder' },
     { href: 'staff.index', label: 'Equipa', icon: 'users2', adminOnly: true },
     { href: 'audit.index', label: 'Auditoria', icon: 'shieldCheck', adminOnly: true },

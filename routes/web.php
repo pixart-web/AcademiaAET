@@ -19,6 +19,7 @@ use App\Http\Controllers\MediaStreamController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfessionalAssignmentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ScreeningController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\Settings\MfaSettingsController;
 use App\Http\Controllers\Settings\SessionController;
@@ -77,6 +78,14 @@ Route::middleware(['auth', 'role:admin,professional'])->group(function () {
 
     Route::get('audit', [AuditEventController::class, 'index'])->name('audit.index');
     Route::get('pesquisa', SearchController::class)->name('search');
+
+    Route::get('rastreios', [ScreeningController::class, 'index'])->name('screenings.index');
+    Route::get('rastreios/novo', [ScreeningController::class, 'create'])->name('screenings.create');
+    Route::post('rastreios', [ScreeningController::class, 'store'])->name('screenings.store');
+    Route::get('rastreios/{screening}/executar', [ScreeningController::class, 'run'])->name('screenings.run');
+    Route::post('rastreios/{screening}/responder', [ScreeningController::class, 'answer'])->name('screenings.answer');
+    Route::get('rastreios/{screening}/relatorio', [ScreeningController::class, 'report'])->name('screenings.report');
+    Route::post('rastreios/{screening}/reenviar', [ScreeningController::class, 'resend'])->name('screenings.resend');
 });
 
 Route::middleware(['auth'])->group(function () {

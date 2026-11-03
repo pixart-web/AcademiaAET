@@ -12,6 +12,7 @@ use App\Models\Organization;
 use App\Models\ProfessionalAssignment;
 use App\Models\User;
 use App\Services\ActivityVersioningService;
+use App\Services\Screening\ScreeningItemImporter;
 use Illuminate\Database\Seeder;
 
 /**
@@ -129,6 +130,14 @@ class DemoDataSeeder extends Seeder
                 ]);
             }
         }
+
+        // Itens FICTÍCIOS do rastreio de fala/linguagem; o conteúdo real da
+        // clínica entra por `php artisan screening:import`.
+        app(ScreeningItemImporter::class)->import(
+            $org->id,
+            json_decode(file_get_contents(database_path('data/screening-demo-items.json')), true)['items'],
+            demo: true,
+        );
 
         $this->command?->info('Dados de demonstração criados. Login: admin@academia-aet.test / terapeuta@academia-aet.test (password: password)');
     }
