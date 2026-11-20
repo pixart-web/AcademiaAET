@@ -1,0 +1,885 @@
+{
+ "_comment": "Itens FICTÍCIOS de demonstração. O conteúdo clínico real (a estrutura pré-definida da clínica) substitui este ficheiro via `php artisan screening:import`. A ordem das opções aqui tem a correta sempre primeiro; o servidor baralha-as antes de as enviar.",
+ "items": [
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 1,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Pai",
+   "phoneme": "p"
+  },
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 2,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Bola",
+   "phoneme": "b"
+  },
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 3,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Torta",
+   "phoneme": "t"
+  },
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 4,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Dado",
+   "phoneme": "d"
+  },
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 5,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Cão",
+   "phoneme": "k"
+  },
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 6,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Gato",
+   "phoneme": "g"
+  },
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 7,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Mão",
+   "phoneme": "m"
+  },
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 8,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Nariz",
+   "phoneme": "n"
+  },
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 9,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Fogo",
+   "phoneme": "f"
+  },
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 10,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Vaca",
+   "phoneme": "v"
+  },
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 11,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Sapo",
+   "phoneme": "s"
+  },
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 12,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Zebra",
+   "phoneme": "z"
+  },
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 13,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Ninho",
+   "phoneme": "ɲ"
+  },
+  {
+   "age_block": "3",
+   "kind": "speech",
+   "position": 14,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Lua",
+   "phoneme": "l"
+  },
+  {
+   "age_block": "3",
+   "kind": "comprehension",
+   "position": 1,
+   "prompt": "Clica no cão que está debaixo da mesa.",
+   "options": [
+    {
+     "label": "Cão debaixo da mesa",
+     "correct": true
+    },
+    {
+     "label": "Cão em cima da mesa",
+     "correct": false
+    },
+    {
+     "label": "Gato debaixo da mesa",
+     "correct": false
+    },
+    {
+     "label": "Cão ao lado da mesa",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "3",
+   "kind": "comprehension",
+   "position": 2,
+   "prompt": "Mostra-me a bola grande.",
+   "options": [
+    {
+     "label": "Bola grande",
+     "correct": true
+    },
+    {
+     "label": "Bola pequena",
+     "correct": false
+    },
+    {
+     "label": "Cubo grande",
+     "correct": false
+    },
+    {
+     "label": "Boneca grande",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "3",
+   "kind": "comprehension",
+   "position": 3,
+   "prompt": "Onde está a menina a dormir?",
+   "options": [
+    {
+     "label": "Menina a dormir",
+     "correct": true
+    },
+    {
+     "label": "Menina a comer",
+     "correct": false
+    },
+    {
+     "label": "Menino a dormir",
+     "correct": false
+    },
+    {
+     "label": "Menina a correr",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "3",
+   "kind": "comprehension",
+   "position": 4,
+   "prompt": "Clica no copo vazio.",
+   "options": [
+    {
+     "label": "Copo vazio",
+     "correct": true
+    },
+    {
+     "label": "Copo cheio",
+     "correct": false
+    },
+    {
+     "label": "Prato vazio",
+     "correct": false
+    },
+    {
+     "label": "Garrafa vazia",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "3",
+   "kind": "naming",
+   "position": 1,
+   "prompt": "O que está a fazer a menina?",
+   "expected_answer": "A correr"
+  },
+  {
+   "age_block": "3",
+   "kind": "naming",
+   "position": 2,
+   "prompt": "O que é isto?",
+   "expected_answer": "Uma bola"
+  },
+  {
+   "age_block": "3",
+   "kind": "repetition",
+   "position": 1,
+   "prompt": "Repete a frase: A bola é azul.",
+   "expected_answer": "A bola é azul."
+  },
+  {
+   "age_block": "3",
+   "kind": "repetition",
+   "position": 2,
+   "prompt": "Repete a frase: O gato come o peixe.",
+   "expected_answer": "O gato come o peixe."
+  },
+  {
+   "age_block": "4",
+   "kind": "speech",
+   "position": 1,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Fogo",
+   "phoneme": "f"
+  },
+  {
+   "age_block": "4",
+   "kind": "speech",
+   "position": 2,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Vaca",
+   "phoneme": "v"
+  },
+  {
+   "age_block": "4",
+   "kind": "speech",
+   "position": 3,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Sapo",
+   "phoneme": "s"
+  },
+  {
+   "age_block": "4",
+   "kind": "speech",
+   "position": 4,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Zebra",
+   "phoneme": "z"
+  },
+  {
+   "age_block": "4",
+   "kind": "speech",
+   "position": 5,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Ninho",
+   "phoneme": "ɲ"
+  },
+  {
+   "age_block": "4",
+   "kind": "speech",
+   "position": 6,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Lua",
+   "phoneme": "l"
+  },
+  {
+   "age_block": "4",
+   "kind": "speech",
+   "position": 7,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Chave",
+   "phoneme": "ʃ"
+  },
+  {
+   "age_block": "4",
+   "kind": "speech",
+   "position": 8,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Janela",
+   "phoneme": "ʒ"
+  },
+  {
+   "age_block": "4",
+   "kind": "speech",
+   "position": 9,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Palhaço",
+   "phoneme": "ʎ"
+  },
+  {
+   "age_block": "4",
+   "kind": "speech",
+   "position": 10,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Rato",
+   "phoneme": "R"
+  },
+  {
+   "age_block": "4",
+   "kind": "speech",
+   "position": 11,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Carro",
+   "phoneme": "R"
+  },
+  {
+   "age_block": "4",
+   "kind": "speech",
+   "position": 12,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Biscoito",
+   "phoneme": "S_coda"
+  },
+  {
+   "age_block": "4",
+   "kind": "comprehension",
+   "position": 1,
+   "prompt": "Clica no gato que está dentro da caixa.",
+   "options": [
+    {
+     "label": "Gato dentro da caixa",
+     "correct": true
+    },
+    {
+     "label": "Gato fora da caixa",
+     "correct": false
+    },
+    {
+     "label": "Cão dentro da caixa",
+     "correct": false
+    },
+    {
+     "label": "Gato em cima da caixa",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "4",
+   "kind": "comprehension",
+   "position": 2,
+   "prompt": "Mostra-me o menino que está a comer e a menina que está a beber.",
+   "options": [
+    {
+     "label": "Menino a comer, menina a beber",
+     "correct": true
+    },
+    {
+     "label": "Menino a beber, menina a comer",
+     "correct": false
+    },
+    {
+     "label": "Os dois a comer",
+     "correct": false
+    },
+    {
+     "label": "Os dois a beber",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "4",
+   "kind": "comprehension",
+   "position": 3,
+   "prompt": "Clica na maçã que não está na mesa.",
+   "options": [
+    {
+     "label": "Maçã no chão",
+     "correct": true
+    },
+    {
+     "label": "Maçã na mesa",
+     "correct": false
+    },
+    {
+     "label": "Pera no chão",
+     "correct": false
+    },
+    {
+     "label": "Maçã no cesto na mesa",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "4",
+   "kind": "comprehension",
+   "position": 4,
+   "prompt": "Mostra o carro que é maior do que o autocarro.",
+   "options": [
+    {
+     "label": "Carro maior",
+     "correct": true
+    },
+    {
+     "label": "Autocarro maior",
+     "correct": false
+    },
+    {
+     "label": "Carros iguais",
+     "correct": false
+    },
+    {
+     "label": "Dois autocarros",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "4",
+   "kind": "naming",
+   "position": 1,
+   "prompt": "O que está a fazer o menino?",
+   "expected_answer": "A comer"
+  },
+  {
+   "age_block": "4",
+   "kind": "naming",
+   "position": 2,
+   "prompt": "O que é isto?",
+   "expected_answer": "Uma cadeira"
+  },
+  {
+   "age_block": "4",
+   "kind": "repetition",
+   "position": 1,
+   "prompt": "Repete a frase: O menino come a sopa quente.",
+   "expected_answer": "O menino come a sopa quente."
+  },
+  {
+   "age_block": "4",
+   "kind": "repetition",
+   "position": 2,
+   "prompt": "Repete a frase: A mãe pôs a mesa.",
+   "expected_answer": "A mãe pôs a mesa."
+  },
+  {
+   "age_block": "5",
+   "kind": "speech",
+   "position": 1,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Chave",
+   "phoneme": "ʃ"
+  },
+  {
+   "age_block": "5",
+   "kind": "speech",
+   "position": 2,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Janela",
+   "phoneme": "ʒ"
+  },
+  {
+   "age_block": "5",
+   "kind": "speech",
+   "position": 3,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Palhaço",
+   "phoneme": "ʎ"
+  },
+  {
+   "age_block": "5",
+   "kind": "speech",
+   "position": 4,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Rato",
+   "phoneme": "R"
+  },
+  {
+   "age_block": "5",
+   "kind": "speech",
+   "position": 5,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Carro",
+   "phoneme": "R"
+  },
+  {
+   "age_block": "5",
+   "kind": "speech",
+   "position": 6,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Biscoito",
+   "phoneme": "S_coda"
+  },
+  {
+   "age_block": "5",
+   "kind": "speech",
+   "position": 7,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Pera",
+   "phoneme": "r"
+  },
+  {
+   "age_block": "5",
+   "kind": "speech",
+   "position": 8,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Carroça",
+   "phoneme": "R"
+  },
+  {
+   "age_block": "5",
+   "kind": "speech",
+   "position": 9,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Porta",
+   "phoneme": "R_coda"
+  },
+  {
+   "age_block": "5",
+   "kind": "speech",
+   "position": 10,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Flor",
+   "phoneme": "FL"
+  },
+  {
+   "age_block": "5",
+   "kind": "speech",
+   "position": 11,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Bloco",
+   "phoneme": "BL"
+  },
+  {
+   "age_block": "5",
+   "kind": "comprehension",
+   "position": 1,
+   "prompt": "Clica na menina que vai ser empurrada pelo menino.",
+   "options": [
+    {
+     "label": "Menina empurrada pelo menino",
+     "correct": true
+    },
+    {
+     "label": "Menino empurrado pela menina",
+     "correct": false
+    },
+    {
+     "label": "Os dois a correr",
+     "correct": false
+    },
+    {
+     "label": "Menina sozinha",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "5",
+   "kind": "comprehension",
+   "position": 2,
+   "prompt": "Mostra o desenho onde o gato está entre a cadeira e a mesa.",
+   "options": [
+    {
+     "label": "Gato entre a cadeira e a mesa",
+     "correct": true
+    },
+    {
+     "label": "Gato atrás da mesa",
+     "correct": false
+    },
+    {
+     "label": "Gato à frente da cadeira",
+     "correct": false
+    },
+    {
+     "label": "Gato debaixo da cadeira",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "5",
+   "kind": "comprehension",
+   "position": 3,
+   "prompt": "Clica no desenho onde o livro está à esquerda da bola.",
+   "options": [
+    {
+     "label": "Livro à esquerda da bola",
+     "correct": true
+    },
+    {
+     "label": "Livro à direita da bola",
+     "correct": false
+    },
+    {
+     "label": "Livro em cima da bola",
+     "correct": false
+    },
+    {
+     "label": "Livro atrás da bola",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "5",
+   "kind": "comprehension",
+   "position": 4,
+   "prompt": "Mostra quem já acabou de pintar.",
+   "options": [
+    {
+     "label": "Menino com o desenho pronto",
+     "correct": true
+    },
+    {
+     "label": "Menino a começar a pintar",
+     "correct": false
+    },
+    {
+     "label": "Menino sem lápis",
+     "correct": false
+    },
+    {
+     "label": "Menino a dormir",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "5",
+   "kind": "naming",
+   "position": 1,
+   "prompt": "O que está a fazer a mulher?",
+   "expected_answer": "A cozinhar"
+  },
+  {
+   "age_block": "5",
+   "kind": "naming",
+   "position": 2,
+   "prompt": "O que é isto?",
+   "expected_answer": "Uma janela"
+  },
+  {
+   "age_block": "5",
+   "kind": "repetition",
+   "position": 1,
+   "prompt": "Repete a frase: A menina pôs o livro na mesa.",
+   "expected_answer": "A menina pôs o livro na mesa."
+  },
+  {
+   "age_block": "5",
+   "kind": "repetition",
+   "position": 2,
+   "prompt": "Repete a frase: O cão correu atrás da bola vermelha.",
+   "expected_answer": "O cão correu atrás da bola vermelha."
+  },
+  {
+   "age_block": "6-7",
+   "kind": "speech",
+   "position": 1,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Pera",
+   "phoneme": "r"
+  },
+  {
+   "age_block": "6-7",
+   "kind": "speech",
+   "position": 2,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Carroça",
+   "phoneme": "R"
+  },
+  {
+   "age_block": "6-7",
+   "kind": "speech",
+   "position": 3,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Porta",
+   "phoneme": "R_coda"
+  },
+  {
+   "age_block": "6-7",
+   "kind": "speech",
+   "position": 4,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Flor",
+   "phoneme": "FL"
+  },
+  {
+   "age_block": "6-7",
+   "kind": "speech",
+   "position": 5,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Bloco",
+   "phoneme": "BL"
+  },
+  {
+   "age_block": "6-7",
+   "kind": "speech",
+   "position": 6,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Prato",
+   "phoneme": "PR"
+  },
+  {
+   "age_block": "6-7",
+   "kind": "speech",
+   "position": 7,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Branco",
+   "phoneme": "BR"
+  },
+  {
+   "age_block": "6-7",
+   "kind": "speech",
+   "position": 8,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Comboio",
+   "phoneme": "CONS"
+  },
+  {
+   "age_block": "6-7",
+   "kind": "speech",
+   "position": 9,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Trator",
+   "phoneme": "TR"
+  },
+  {
+   "age_block": "6-7",
+   "kind": "speech",
+   "position": 10,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Dragão",
+   "phoneme": "DR"
+  },
+  {
+   "age_block": "6-7",
+   "kind": "speech",
+   "position": 11,
+   "prompt": "Diz o nome da imagem.",
+   "target_word": "Cruz",
+   "phoneme": "CR"
+  },
+  {
+   "age_block": "6-7",
+   "kind": "comprehension",
+   "position": 1,
+   "prompt": "Clica no desenho em que, se chover, o menino leva o guarda-chuva.",
+   "options": [
+    {
+     "label": "Chuva e guarda-chuva",
+     "correct": true
+    },
+    {
+     "label": "Sol e guarda-chuva",
+     "correct": false
+    },
+    {
+     "label": "Chuva sem guarda-chuva",
+     "correct": false
+    },
+    {
+     "label": "Sol e chapéu",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "6-7",
+   "kind": "comprehension",
+   "position": 2,
+   "prompt": "Mostra a menina que foi vista pelo cão.",
+   "options": [
+    {
+     "label": "Menina vista pelo cão",
+     "correct": true
+    },
+    {
+     "label": "Cão visto pela menina",
+     "correct": false
+    },
+    {
+     "label": "Menina a ver televisão",
+     "correct": false
+    },
+    {
+     "label": "Cão a dormir",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "6-7",
+   "kind": "comprehension",
+   "position": 3,
+   "prompt": "Clica no desenho em que o pássaro está pousado no ramo mais alto.",
+   "options": [
+    {
+     "label": "Pássaro no ramo mais alto",
+     "correct": true
+    },
+    {
+     "label": "Pássaro no ramo mais baixo",
+     "correct": false
+    },
+    {
+     "label": "Pássaro a voar",
+     "correct": false
+    },
+    {
+     "label": "Dois pássaros no mesmo ramo",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "6-7",
+   "kind": "comprehension",
+   "position": 4,
+   "prompt": "Mostra o menino que nem comeu a sopa nem bebeu o leite.",
+   "options": [
+    {
+     "label": "Sopa e leite intactos",
+     "correct": true
+    },
+    {
+     "label": "Sopa comida",
+     "correct": false
+    },
+    {
+     "label": "Leite bebido",
+     "correct": false
+    },
+    {
+     "label": "Tudo comido",
+     "correct": false
+    }
+   ]
+  },
+  {
+   "age_block": "6-7",
+   "kind": "naming",
+   "position": 1,
+   "prompt": "O que está a acontecer nesta imagem?",
+   "expected_answer": "O menino está a ler um livro"
+  },
+  {
+   "age_block": "6-7",
+   "kind": "naming",
+   "position": 2,
+   "prompt": "O que é isto?",
+   "expected_answer": "Um comboio"
+  },
+  {
+   "age_block": "6-7",
+   "kind": "repetition",
+   "position": 1,
+   "prompt": "Repete a frase: Quando chove, o Pedro leva o guarda-chuva.",
+   "expected_answer": "Quando chove, o Pedro leva o guarda-chuva."
+  },
+  {
+   "age_block": "6-7",
+   "kind": "repetition",
+   "position": 2,
+   "prompt": "Repete a frase: A professora disse que amanhã vamos ao jardim.",
+   "expected_answer": "A professora disse que amanhã vamos ao jardim."
+  }
+ ]
+}
