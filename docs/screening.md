@@ -25,3 +25,6 @@ Fluxo conduzido por um adulto (terapeuta/administrador) em **Rastreios**. Não �
 
 ## Dependências
 `barryvdh/laravel-dompdf` adicionado; `symfony/mime` atualizado (CVE-2026-45070).
+
+## Verificação no browser (dados fictícios)
+Percurso completo no portal local: registo (idade calculada em direto: 4 anos e 6 meses → bloco de 4), fala com substituição/omissão, compreensão, expressão, regra dos 3 erros, ecrã de resultado com gráfico e fonemas, geração do PDF. Sem e-mail da clínica configurado, o ecrã indica que o relatório ficou só guardado. Por verificar: envio real de e-mail (SMTP), imagens reais, vista em telemóvel.
